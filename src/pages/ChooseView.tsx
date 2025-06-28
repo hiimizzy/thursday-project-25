@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, LayoutGrid, Table, Calendar, Kanban, CreditCard, Timeline } from 'lucide-react';
+import { ArrowRight, LayoutGrid, Table, Calendar, Kanban, CreditCard, Clock } from 'lucide-react';
 
 const ChooseView = () => {
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ const ChooseView = () => {
       id: 'timeline',
       name: 'Cronograma',
       description: 'Linha do tempo dos seus projetos',
-      icon: <Timeline className="h-8 w-8" />,
+      icon: <Clock className="h-8 w-8" />,
       preview: 'Ótimo para planejamento temporal'
     },
     {
