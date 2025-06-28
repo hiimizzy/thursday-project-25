@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Star, Users, Calendar, BarChart3, Settings, LogOut, User, Help } from 'lucide-react';
+import { Plus, Search, Star, Users, Calendar, BarChart3, Settings, LogOut, User, CircleHelp } from 'lucide-react';
 import CreateProjectDialog from '@/components/CreateProjectDialog';
 import SettingsDialog from '@/components/SettingsDialog';
 import CompanySelector from '@/components/CompanySelector';
@@ -146,7 +146,7 @@ const Dashboard = () => {
             </div>
             
             <Button variant="outline" size="sm">
-              <Help className="h-4 w-4 mr-2" />
+              <CircleHelp className="h-4 w-4 mr-2" />
               Ajuda
             </Button>
             
