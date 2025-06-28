@@ -44,7 +44,7 @@ const HelpDialog = ({ trigger }: HelpDialogProps) => {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CircleHelp className="h-5 w-5 text-blue-600" />
@@ -85,7 +85,7 @@ const HelpDialog = ({ trigger }: HelpDialogProps) => {
           </div>
         </div>
         
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-4 border-t">
           <Button onClick={() => setOpen(false)}>
             Entendi
           </Button>

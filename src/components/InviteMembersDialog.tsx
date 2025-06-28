@@ -89,7 +89,7 @@ const InviteMembersDialog = ({ trigger }: InviteMembersDialogProps) => {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5 text-blue-600" />
@@ -145,7 +145,7 @@ const InviteMembersDialog = ({ trigger }: InviteMembersDialogProps) => {
                   Convites pendentes ({invites.length})
                 </h4>
                 
-                <div className="space-y-2 max-h-32 overflow-y-auto">
+                <div className="space-y-2 max-h-40 overflow-y-auto">
                   {invites.map((invite) => (
                     <div key={invite.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
                       <div className="flex items-center gap-2">
@@ -180,7 +180,7 @@ const InviteMembersDialog = ({ trigger }: InviteMembersDialogProps) => {
           </div>
         </div>
         
-        <div className="flex gap-2 pt-4">
+        <div className="flex gap-2 pt-4 border-t">
           <Button 
             variant="outline" 
             onClick={() => setOpen(false)}
