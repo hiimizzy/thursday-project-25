@@ -11,6 +11,7 @@ import InviteTeam from "./pages/InviteTeam";
 import ChooseView from "./pages/ChooseView";
 import SetupActivities from "./pages/SetupActivities";
 import Dashboard from "./pages/Dashboard";
+import ProjectView from "./pages/ProjectView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/choose-view" element={<ChooseView />} />
           <Route path="/setup-activities" element={<SetupActivities />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/project/:projectId" element={<ProjectView />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
