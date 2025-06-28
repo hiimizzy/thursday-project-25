@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -9,6 +11,9 @@ import { Link } from 'react-router-dom';
 const Login = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
@@ -19,8 +24,24 @@ const Login = () => {
     }, 1500);
   };
 
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    
+    setIsLoading(true);
+    // Simular login/cadastro com email
+    setTimeout(() => {
+      setIsLoading(false);
+      if (isSignUp) {
+        navigate('/onboarding');
+      } else {
+        navigate('/dashboard');
+      }
+    }, 1500);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="mb-8">
           <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 transition-colors">
@@ -34,9 +55,11 @@ const Login = () => {
             <div className="mb-4">
               <h1 className="text-3xl font-bold text-blue-600">Thursday</h1>
             </div>
-            <CardTitle className="text-2xl">Bem-vindo de volta</CardTitle>
+            <CardTitle className="text-2xl">
+              {isSignUp ? 'Criar conta' : 'Bem-vindo de volta'}
+            </CardTitle>
             <CardDescription className="text-base">
-              Entre com sua conta Google para continuar
+              {isSignUp ? 'Crie sua conta para começar' : 'Entre com sua conta para continuar'}
             </CardDescription>
           </CardHeader>
           
@@ -44,7 +67,7 @@ const Login = () => {
             <Button
               onClick={handleGoogleLogin}
               disabled={isLoading}
-              className="w-full h-12 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 shadow-sm"
+              className="w-full h-12 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 shadow-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
             >
               {isLoading ? (
                 <div className="flex items-center">
@@ -63,7 +86,53 @@ const Login = () => {
                 </div>
               )}
             </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <Separator className="w-full" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Ou</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleEmailLogin} className="space-y-4">
+              <div>
+                <Input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Input
+                  type="password"
+                  placeholder="Senha"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                disabled={isLoading}
+              >
+                {isSignUp ? 'Criar conta' : 'Entrar'}
+              </Button>
+            </form>
             
+            <div className="text-center">
+              <button
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                {isSignUp ? 'Já tem uma conta? Entre aqui' : 'Não tem conta? Cadastre-se'}
+              </button>
+            </div>
+
             <div className="text-center text-sm text-gray-600">
               Ao continuar, você concorda com nossos{' '}
               <a href="#" className="text-blue-600 hover:underline">Termos de Serviço</a>{' '}
@@ -72,15 +141,6 @@ const Login = () => {
             </div>
           </CardContent>
         </Card>
-        
-        <div className="mt-8 text-center">
-          <p className="text-gray-600">
-            Novo no Thursday?{' '}
-            <span className="text-blue-600 font-medium">
-              O cadastro é automático no primeiro login!
-            </span>
-          </p>
-        </div>
       </div>
     </div>
   );

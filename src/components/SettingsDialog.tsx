@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -9,16 +9,23 @@ import { Settings, Upload, User, Moon, Sun } from 'lucide-react';
 
 interface SettingsDialogProps {
   trigger?: React.ReactNode;
+  currentProfileImage?: string;
+  onProfileImageChange?: (imageUrl: string) => void;
 }
 
-const SettingsDialog = ({ trigger }: SettingsDialogProps) => {
+const SettingsDialog = ({ trigger, currentProfileImage, onProfileImageChange }: SettingsDialogProps) => {
   const [open, setOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    return document.documentElement.classList.contains('dark');
+  });
   const [accountUrl, setAccountUrl] = useState('minha-empresa');
-  const [profileImage, setProfileImage] = useState('');
+  const [profileImage, setProfileImage] = useState(currentProfileImage || '');
+
+  useEffect(() => {
+    setProfileImage(currentProfileImage || '');
+  }, [currentProfileImage]);
 
   const handleSave = () => {
-    // Implementar lógica para salvar configurações
     console.log('Salvando configurações:', { darkMode, accountUrl, profileImage });
     
     // Aplicar modo escuro
@@ -27,6 +34,14 @@ const SettingsDialog = ({ trigger }: SettingsDialogProps) => {
     } else {
       document.documentElement.classList.remove('dark');
     }
+
+    // Salvar URL da conta no localStorage
+    localStorage.setItem('accountUrl', accountUrl);
+    
+    // Callback para atualizar foto de perfil
+    if (onProfileImageChange && profileImage) {
+      onProfileImageChange(profileImage);
+    }
     
     setOpen(false);
   };
@@ -34,11 +49,34 @@ const SettingsDialog = ({ trigger }: SettingsDialogProps) => {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Verificar tamanho do arquivo (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('A imagem deve ter no máximo 5MB');
+        return;
+      }
+
+      // Verificar tipo do arquivo
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor, selecione uma imagem válida');
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = (e) => {
-        setProfileImage(e.target?.result as string);
+        const imageUrl = e.target?.result as string;
+        setProfileImage(imageUrl);
+        // Salvar no localStorage imediatamente
+        localStorage.setItem('profileImage', imageUrl);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setProfileImage('');
+    localStorage.removeItem('profileImage');
+    if (onProfileImageChange) {
+      onProfileImageChange('');
     }
   };
 
@@ -70,7 +108,7 @@ const SettingsDialog = ({ trigger }: SettingsDialogProps) => {
                   <User className="h-8 w-8" />
                 </AvatarFallback>
               </Avatar>
-              <div>
+              <div className="space-y-2">
                 <input
                   type="file"
                   id="profile-image"
@@ -86,6 +124,16 @@ const SettingsDialog = ({ trigger }: SettingsDialogProps) => {
                   <Upload className="h-4 w-4 mr-2" />
                   Alterar Foto
                 </Button>
+                {profileImage && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemoveImage}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    Remover
+                  </Button>
+                )}
               </div>
             </div>
           </div>
