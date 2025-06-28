@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +9,8 @@ import { Plus, Search, Star, Users, Calendar, BarChart3, Settings, LogOut, User,
 import CreateProjectDialog from '@/components/CreateProjectDialog';
 import SettingsDialog from '@/components/SettingsDialog';
 import CompanySelector from '@/components/CompanySelector';
+import HelpDialog from '@/components/HelpDialog';
+import InviteMembersDialog from '@/components/InviteMembersDialog';
 
 interface Project {
   id: string;
@@ -145,10 +146,9 @@ const Dashboard = () => {
               />
             </div>
             
-            <Button variant="outline" size="sm">
-              <CircleHelp className="h-4 w-4 mr-2" />
-              Ajuda
-            </Button>
+            <InviteMembersDialog />
+            
+            <HelpDialog />
             
             <SettingsDialog
               currentProfileImage={profileImage}
