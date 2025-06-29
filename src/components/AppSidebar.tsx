@@ -79,7 +79,7 @@ export function AppSidebar({
   const isActive = (path: string) => currentPath === path;
 
   return (
-    <Sidebar className={isCollapsed ? "w-14" : "w-64"} collapsible>
+    <Sidebar className={isCollapsed ? "w-14" : "w-64"} collapsible="offcanvas">
       <SidebarHeader className="p-4">
         {!isCollapsed && (
           <div className="flex items-center space-x-2">
@@ -154,30 +154,25 @@ export function AppSidebar({
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <CreateProjectDialog 
-                  onCreateProject={onCreateProject}
-                  trigger={
-                    <SidebarMenuButton 
-                      tooltip={isCollapsed ? "Novo Projeto" : undefined}
-                    >
-                      <Plus className="h-4 w-4" />
-                      {!isCollapsed && <span className="ml-2">Novo Projeto</span>}
-                    </SidebarMenuButton>
-                  }
-                />
+                <SidebarMenuButton 
+                  tooltip={isCollapsed ? "Novo Projeto" : undefined}
+                  onClick={() => {}}
+                >
+                  <Plus className="h-4 w-4" />
+                  {!isCollapsed && <span className="ml-2">Novo Projeto</span>}
+                </SidebarMenuButton>
+                <CreateProjectDialog onCreateProject={onCreateProject} />
               </SidebarMenuItem>
               
               <SidebarMenuItem>
-                <InviteMembersDialog 
-                  trigger={
-                    <SidebarMenuButton 
-                      tooltip={isCollapsed ? "Convidar Membros" : undefined}
-                    >
-                      <Users className="h-4 w-4" />
-                      {!isCollapsed && <span className="ml-2">Convidar Membros</span>}
-                    </SidebarMenuButton>
-                  }
-                />
+                <SidebarMenuButton 
+                  tooltip={isCollapsed ? "Convidar Membros" : undefined}
+                  onClick={() => setIsInviteOpen(true)}
+                >
+                  <Users className="h-4 w-4" />
+                  {!isCollapsed && <span className="ml-2">Convidar Membros</span>}
+                </SidebarMenuButton>
+                <InviteMembersDialog />
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
@@ -206,19 +201,26 @@ export function AppSidebar({
 
           {/* Botões de Ação */}
           <div className="flex space-x-1">
-            <HelpDialog 
-              trigger={
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="flex-1"
-                  title="Ajuda"
-                >
-                  <HelpCircle className="h-4 w-4" />
-                </Button>
-              }
-            />
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="flex-1"
+              title="Ajuda"
+              onClick={() => setIsHelpOpen(true)}
+            >
+              <HelpCircle className="h-4 w-4" />
+            </Button>
+            <HelpDialog />
             
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="flex-1"
+              title="Configurações"
+              onClick={() => setIsSettingsOpen(true)}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
             <SettingsDialog
               currentProfileImage={profileImage}
               onProfileImageChange={onProfileImageChange}
