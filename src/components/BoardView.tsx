@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,7 +108,7 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
     const updatedColumns = columns.filter(col => col.id !== columnId);
     const updatedItems = items.map(item => {
       const { [columnId]: removed, ...rest } = item;
-      return rest;
+      return rest as Item; // Explicitly cast to maintain Item type
     });
 
     // Atualização otimista
