@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +8,8 @@ import { UserPlus, Mail, X, Send } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 interface InviteMembersDialogProps {
-  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 interface PendingInvite {
@@ -18,8 +18,7 @@ interface PendingInvite {
   role: 'admin' | 'member' | 'viewer';
 }
 
-const InviteMembersDialog = ({ trigger }: InviteMembersDialogProps) => {
-  const [open, setOpen] = useState(false);
+const InviteMembersDialog = ({ open, onOpenChange }: InviteMembersDialogProps) => {
   const [invites, setInvites] = useState<PendingInvite[]>([]);
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState<'admin' | 'member' | 'viewer'>('member');
@@ -58,7 +57,7 @@ const InviteMembersDialog = ({ trigger }: InviteMembersDialogProps) => {
       });
       
       setInvites([]);
-      setOpen(false);
+      onOpenChange?.(false);
     } catch (error) {
       toast({
         title: "Erro ao enviar convites",
@@ -80,15 +79,7 @@ const InviteMembersDialog = ({ trigger }: InviteMembersDialogProps) => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button variant="outline" size="sm">
-            <UserPlus className="h-4 w-4 mr-2" />
-            Convidar Membros
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -183,7 +174,7 @@ const InviteMembersDialog = ({ trigger }: InviteMembersDialogProps) => {
         <div className="flex gap-2 pt-4 border-t">
           <Button 
             variant="outline" 
-            onClick={() => setOpen(false)}
+            onClick={() => onOpenChange?.(false)}
             className="flex-1"
           >
             Cancelar

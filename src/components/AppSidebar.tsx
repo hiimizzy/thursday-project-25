@@ -66,20 +66,24 @@ export function AppSidebar({
   projects, 
   onCreateProject 
 }: AppSidebarProps) {
-  const { state } = useSidebar();
+  const { state, isMobile } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
+  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   
-  const isCollapsed = state === 'collapsed';
+  const isCollapsed = state === 'collapsed' && !isMobile;
   const currentPath = location.pathname;
 
   const isActive = (path: string) => currentPath === path;
 
   return (
-    <Sidebar className={isCollapsed ? "w-14" : "w-64"} collapsible="offcanvas">
+    <Sidebar 
+      className={isCollapsed ? "w-14" : "w-64"} 
+      collapsible={isMobile ? "offcanvas" : "icon"}
+    >
       <SidebarHeader className="p-4">
         {!isCollapsed && (
           <div className="flex items-center space-x-2">
@@ -156,12 +160,11 @@ export function AppSidebar({
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   tooltip={isCollapsed ? "Novo Projeto" : undefined}
-                  onClick={() => {}}
+                  onClick={() => setIsCreateProjectOpen(true)}
                 >
                   <Plus className="h-4 w-4" />
                   {!isCollapsed && <span className="ml-2">Novo Projeto</span>}
                 </SidebarMenuButton>
-                <CreateProjectDialog onCreateProject={onCreateProject} />
               </SidebarMenuItem>
               
               <SidebarMenuItem>
@@ -172,7 +175,6 @@ export function AppSidebar({
                   <Users className="h-4 w-4" />
                   {!isCollapsed && <span className="ml-2">Convidar Membros</span>}
                 </SidebarMenuButton>
-                <InviteMembersDialog />
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
@@ -210,7 +212,6 @@ export function AppSidebar({
             >
               <HelpCircle className="h-4 w-4" />
             </Button>
-            <HelpDialog />
             
             <Button 
               variant="ghost" 
@@ -221,20 +222,6 @@ export function AppSidebar({
             >
               <Settings className="h-4 w-4" />
             </Button>
-            <SettingsDialog
-              currentProfileImage={profileImage}
-              onProfileImageChange={onProfileImageChange}
-              trigger={
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="flex-1"
-                  title="Configurações"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-              }
-            />
             
             <Button
               variant="ghost"
@@ -248,6 +235,30 @@ export function AppSidebar({
           </div>
         </div>
       </SidebarFooter>
+
+      {/* Diálogos */}
+      <CreateProjectDialog 
+        open={isCreateProjectOpen}
+        onOpenChange={setIsCreateProjectOpen}
+        onCreateProject={onCreateProject}
+      />
+      
+      <InviteMembersDialog 
+        open={isInviteOpen}
+        onOpenChange={setIsInviteOpen}
+      />
+      
+      <SettingsDialog
+        open={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+        currentProfileImage={profileImage}
+        onProfileImageChange={onProfileImageChange}
+      />
+      
+      <HelpDialog 
+        open={isHelpOpen}
+        onOpenChange={setIsHelpOpen}
+      />
     </Sidebar>
   );
 }

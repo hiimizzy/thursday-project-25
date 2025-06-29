@@ -1,18 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from '@/components/AppSidebar';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Star, Users, Calendar, BarChart3, Settings, LogOut, User, CircleHelp } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
+import { 
+  Search, 
+  Filter, 
+  Plus, 
+  Calendar, 
+  Users, 
+  Clock, 
+  MoreVertical,
+  Star,
+  StarOff,
+  Eye,
+  Edit,
+  Trash2
+} from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import CreateProjectDialog from '@/components/CreateProjectDialog';
-import SettingsDialog from '@/components/SettingsDialog';
-import CompanySelector from '@/components/CompanySelector';
-import HelpDialog from '@/components/HelpDialog';
-import InviteMembersDialog from '@/components/InviteMembersDialog';
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from '@/components/AppSidebar';
 
 interface Project {
   id: string;
@@ -32,77 +43,71 @@ interface Company {
   role: 'admin' | 'member' | 'viewer';
 }
 
+const mockProjects: Project[] = [
+  {
+    id: '1',
+    name: 'Redesign do Site',
+    description: 'Atualização completa da interface do usuário',
+    status: 'active',
+    members: 4,
+    tasks: 12,
+    completedTasks: 8,
+    dueDate: '2024-01-15',
+    favorite: true
+  },
+  {
+    id: '2',
+    name: 'App Mobile',
+    description: 'Desenvolvimento do aplicativo móvel',
+    status: 'active',
+    members: 6,
+    tasks: 24,
+    completedTasks: 15,
+    dueDate: '2024-02-28',
+    favorite: false
+  },
+  {
+    id: '3',
+    name: 'Sistema de CRM',
+    description: 'Implementação do sistema de gestão de clientes',
+    status: 'paused',
+    members: 3,
+    tasks: 18,
+    completedTasks: 5,
+    dueDate: '2024-03-10',
+    favorite: true
+  }
+];
+
 const Dashboard = () => {
-  const navigate = useNavigate();
+  const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentCompany] = useState({ id: '1', name: 'Minha Empresa', role: 'Admin' });
   const [profileImage, setProfileImage] = useState('');
-  const [currentCompany, setCurrentCompany] = useState<Company | null>(null);
-  const [companies, setCompanies] = useState<Company[]>([
-    { id: '1', name: 'Minha Empresa', role: 'admin' },
-    { id: '2', name: 'Empresa Cliente', role: 'member' }
-  ]);
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: '1',
-      name: 'Website Redesign',
-      description: 'Redesign completo do site da empresa',
-      status: 'active',
-      members: 5,
-      tasks: 24,
-      completedTasks: 12,
-      dueDate: '2024-07-15',
-      favorite: true
-    },
-    {
-      id: '2',
-      name: 'App Mobile',
-      description: 'Desenvolvimento do aplicativo móvel',
-      status: 'active',
-      members: 3,
-      tasks: 18,
-      completedTasks: 6,
-      dueDate: '2024-08-20',
-      favorite: false
-    }
-  ]);
-
-  useEffect(() => {
-    // Carregar foto de perfil salva
-    const savedImage = localStorage.getItem('profileImage');
-    if (savedImage) {
-      setProfileImage(savedImage);
-    }
-
-    // Definir empresa padrão
-    if (companies.length > 0 && !currentCompany) {
-      setCurrentCompany(companies[0]);
-    }
-  }, [companies, currentCompany]);
 
   const handleCreateProject = (newProject: Project) => {
     setProjects([...projects, newProject]);
   };
 
-  const handleCompanyChange = (company: Company) => {
-    setCurrentCompany(company);
-    // Aqui você carregaria os projetos da empresa selecionada
-    console.log('Mudando para empresa:', company.name);
+  const toggleFavorite = (projectId: string) => {
+    setProjects(projects.map(project => 
+      project.id === projectId 
+        ? { ...project, favorite: !project.favorite }
+        : project
+    ));
   };
 
-  const handleCreateCompany = (name: string) => {
-    const newCompany: Company = {
-      id: Date.now().toString(),
-      name,
-      role: 'admin'
-    };
-    setCompanies([...companies, newCompany]);
-    setCurrentCompany(newCompany);
+  const deleteProject = (projectId: string) => {
+    setProjects(projects.filter(project => project.id !== projectId));
   };
 
-  const filteredProjects = projects.filter(project =>
-    project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    project.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProjects = projects.filter(project => {
+    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         project.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -124,7 +129,7 @@ const Dashboard = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full flex bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex w-full">
         <AppSidebar
           currentCompany={currentCompany}
           profileImage={profileImage}
@@ -132,200 +137,285 @@ const Dashboard = () => {
           projects={projects}
           onCreateProject={handleCreateProject}
         />
+        
+        <SidebarInset className="flex-1">
+          {/* Header com SidebarTrigger para mobile */}
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 md:hidden">
+            <SidebarTrigger />
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-semibold">Dashboard</h1>
+            </div>
+          </header>
 
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <SidebarTrigger className="lg:hidden" />
-                <div className="flex items-center space-x-4">
-                  <h1 className="text-xl font-bold text-blue-600 hidden sm:block">Thursday</h1>
-                  <CompanySelector
-                    companies={companies}
-                    currentCompany={currentCompany}
-                    onCompanyChange={handleCompanyChange}
-                    onCreateCompany={handleCreateCompany}
-                  />
-                </div>
+          <div className="flex-1 space-y-4 p-4 md:p-8">
+            {/* Header Desktop */}
+            <div className="hidden md:flex md:items-center md:justify-between">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+                <p className="text-muted-foreground">
+                  Gerencie seus projetos e acompanhe o progresso da equipe
+                </p>
               </div>
-              
-              <div className="flex items-center space-x-2">
-                <div className="relative hidden md:block">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <CreateProjectDialog onCreateProject={handleCreateProject} />
+            </div>
+
+            {/* Filtros e Busca */}
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-1 items-center space-x-2">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar projetos..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-48 lg:w-64"
+                    className="pl-8"
                   />
                 </div>
-                
-                <div className="flex items-center space-x-1">
-                  <InviteMembersDialog />
-                  <HelpDialog />
-                  <SettingsDialog
-                    currentProfileImage={profileImage}
-                    onProfileImageChange={setProfileImage}
-                    trigger={
-                      <Button variant="ghost" size="sm">
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                    }
-                  />
-                  <Avatar className="h-8 w-8 cursor-pointer">
-                    <AvatarImage src={profileImage} />
-                    <AvatarFallback>
-                      <User className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[150px]">
+                    <Filter className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="active">Ativo</SelectItem>
+                    <SelectItem value="completed">Concluído</SelectItem>
+                    <SelectItem value="paused">Pausado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
-
-            {/* Mobile Search */}
-            <div className="mt-3 md:hidden">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Buscar projetos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full"
-                />
-              </div>
-            </div>
-          </header>
-
-          {/* Main Content */}
-          <main className="flex-1 p-4 lg:p-6 overflow-auto">
-            <div className="mb-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <div>
-                  <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
-                    Dashboard - {currentCompany?.name}
-                  </h2>
-                  <p className="text-gray-600 dark:text-gray-400 mt-1">
-                    Gerencie seus projetos e colabore com sua equipe
-                  </p>
-                </div>
+              
+              {/* Botão criar projeto mobile */}
+              <div className="md:hidden">
                 <CreateProjectDialog onCreateProject={handleCreateProject} />
               </div>
+            </div>
 
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Projetos Ativos</CardTitle>
-                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{projects.filter(p => p.status === 'active').length}</div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total de Membros</CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {projects.reduce((acc, p) => acc + p.members, 0)}
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Tarefas Concluídas</CardTitle>
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {projects.reduce((acc, p) => acc + p.completedTasks, 0)}
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Taxa de Conclusão</CardTitle>
-                    <Star className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {Math.round((projects.reduce((acc, p) => acc + p.completedTasks, 0) / 
-                        Math.max(projects.reduce((acc, p) => acc + p.tasks, 0), 1)) * 100)}%
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Projects Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
-                {filteredProjects.map((project) => (
-                  <Card 
-                    key={project.id} 
-                    className="hover:shadow-lg transition-shadow cursor-pointer"
-                    onClick={() => navigate(`/project/${project.id}`)}
+            {/* Estatísticas */}
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Total de Projetos
+                  </CardTitle>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    className="h-4 w-4 text-muted-foreground"
                   >
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{project.name}</CardTitle>
-                        {project.favorite && <Star className="h-4 w-4 text-yellow-500 fill-current" />}
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="m22 21-2-2" />
+                  </svg>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{projects.length}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +2 desde o mês passado
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Projetos Ativos
+                  </CardTitle>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    className="h-4 w-4 text-muted-foreground"
+                  >
+                    <rect width="20" height="14" x="2" y="5" rx="2" />
+                    <path d="M2 10h20" />
+                  </svg>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {projects.filter(p => p.status === 'active').length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Em andamento
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Tarefas Concluídas
+                  </CardTitle>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    className="h-4 w-4 text-muted-foreground"
+                  >
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                  </svg>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {projects.reduce((acc, p) => acc + p.completedTasks, 0)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    De {projects.reduce((acc, p) => acc + p.tasks, 0)} tarefas
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Membros da Equipe
+                  </CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {Math.max(...projects.map(p => p.members))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Membros ativos
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Lista de Projetos */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Seus Projetos</h2>
+                <span className="text-sm text-muted-foreground">
+                  {filteredProjects.length} projeto(s) encontrado(s)
+                </span>
+              </div>
+              
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filteredProjects.map((project) => (
+                  <Card key={project.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <CardTitle className="text-lg">{project.name}</CardTitle>
+                          <CardDescription>{project.description}</CardDescription>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleFavorite(project.id)}
+                            className="h-8 w-8 p-0"
+                          >
+                            {project.favorite ? (
+                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                            ) : (
+                              <StarOff className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Visualizar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-red-600"
+                                onClick={() => deleteProject(project.id)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
-                      <CardDescription>{project.description}</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <Badge className={getStatusColor(project.status)}>
-                            {getStatusText(project.status)}
-                          </Badge>
-                          <span className="text-sm text-gray-500">
-                            Vence: {new Date(project.dueDate).toLocaleDateString('pt-BR')}
-                          </span>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between text-sm">
+                        <Badge className={getStatusColor(project.status)}>
+                          {getStatusText(project.status)}
+                        </Badge>
+                        <div className="flex items-center text-muted-foreground">
+                          <Calendar className="mr-1 h-4 w-4" />
+                          {new Date(project.dueDate).toLocaleDateString('pt-BR')}
                         </div>
-                        
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="flex items-center">
-                            <Users className="h-4 w-4 mr-1" />
-                            {project.members} membros
-                          </span>
-                          <span>
-                            {project.completedTasks}/{project.tasks} tarefas
-                          </span>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Progresso</span>
+                          <span>{Math.round((project.completedTasks / project.tasks) * 100)}%</span>
                         </div>
-                        
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full transition-all"
-                            style={{ 
-                              width: `${(project.completedTasks / Math.max(project.tasks, 1)) * 100}%` 
-                            }}
-                          ></div>
+                        <Progress value={(project.completedTasks / project.tasks) * 100} />
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>{project.completedTasks}/{project.tasks} tarefas</span>
+                          <span>{project.members} membros</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="flex -space-x-2">
+                          {[...Array(Math.min(project.members, 3))].map((_, i) => (
+                            <Avatar key={i} className="h-6 w-6 border-2 border-background">
+                              <AvatarImage src={`/placeholder-user-${i + 1}.jpg`} />
+                              <AvatarFallback className="text-xs">U{i + 1}</AvatarFallback>
+                            </Avatar>
+                          ))}
+                          {project.members > 3 && (
+                            <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-muted text-xs">
+                              +{project.members - 3}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center text-xs text-muted-foreground">
+                          <Clock className="mr-1 h-3 w-3" />
+                          Atualizado há 2h
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 ))}
               </div>
-
+              
               {filteredProjects.length === 0 && (
                 <div className="text-center py-12">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    Nenhum projeto encontrado
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    {searchTerm ? 'Tente ajustar sua busca' : 'Comece criando seu primeiro projeto'}
+                  <div className="mx-auto h-12 w-12 text-muted-foreground mb-4">
+                    <Search className="h-full w-full" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Nenhum projeto encontrado</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Tente ajustar os filtros ou criar um novo projeto.
                   </p>
-                  {!searchTerm && <CreateProjectDialog onCreateProject={handleCreateProject} />}
+                  <CreateProjectDialog onCreateProject={handleCreateProject} />
                 </div>
               )}
             </div>
-          </main>
-        </div>
+          </div>
+        </SidebarInset>
       </div>
     </SidebarProvider>
   );
