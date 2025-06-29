@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ArrowLeft, Users, Settings, Share, Star, MoreHorizontal, Eye, Edit3, Trash2, Calendar, Clock, Target } from 'lucide-react';
 import BoardView from '@/components/BoardView';
 import SettingsDialog from '@/components/SettingsDialog';
+import ShareProjectDialog from '@/components/ShareProjectDialog';
 
 const ProjectView = () => {
   const { projectId } = useParams();
@@ -139,10 +139,12 @@ const ProjectView = () => {
               </Badge>
 
               {/* Actions */}
-              <Button variant="outline" className="flex items-center space-x-2">
-                <Share className="h-4 w-4" />
-                <span>Compartilhar</span>
-              </Button>
+              <ShareProjectDialog project={project}>
+                <Button variant="outline" className="flex items-center space-x-2">
+                  <Share className="h-4 w-4" />
+                  <span>Compartilhar</span>
+                </Button>
+              </ShareProjectDialog>
 
               <SettingsDialog 
                 trigger={
