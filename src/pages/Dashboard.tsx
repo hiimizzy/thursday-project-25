@@ -20,13 +20,16 @@ import {
   Edit,
   Trash2,
   Building,
-  FolderKanban
+  FolderKanban,
+  CircleHelp
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import CreateProjectDialog from '@/components/CreateProjectDialog';
 import InviteMembersDialog from '@/components/InviteMembersDialog';
 import ProjectSearch from '@/components/ProjectSearch';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
+import HelpDialog from '@/components/HelpDialog';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface Project {
   id: string;
@@ -129,6 +132,12 @@ const Dashboard = () => {
       console.error('Realtime sync error:', error);
     }
   });
+
+  // Fix NaN% calculation
+  const getProgressPercentage = (completed: number, total: number) => {
+    if (total === 0) return 0;
+    return Math.round((completed / total) * 100);
+  };
 
   // Filtrar projetos pela empresa atual
   const projects = allProjects.filter(project => project.companyId === currentCompany.id);
@@ -261,6 +270,12 @@ const Dashboard = () => {
               <h1 className="text-lg font-semibold truncate">{currentCompany.name}</h1>
             </div>
             <div className="flex gap-2">
+              <ThemeToggle />
+              <HelpDialog trigger={
+                <Button variant="outline" size="sm">
+                  <CircleHelp className="h-4 w-4" />
+                </Button>
+              } />
               <Button onClick={() => setIsInviteOpen(true)} variant="outline" size="sm">
                 <Users className="h-4 w-4" />
               </Button>
@@ -278,6 +293,18 @@ const Dashboard = () => {
                 <p className="text-muted-foreground">
                   Gerencie seus projetos em {currentCompany.name}
                 </p>
+              </div>
+              <div className="flex gap-2">
+                <ThemeToggle />
+                <HelpDialog />
+                <Button onClick={() => setIsInviteOpen(true)} variant="outline">
+                  <Users className="h-4 w-4 mr-2" />
+                  Convidar
+                </Button>
+                <Button onClick={() => setIsCreateProjectOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Projeto
+                </Button>
               </div>
             </div>
 
@@ -429,9 +456,9 @@ const Dashboard = () => {
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span>Progresso</span>
-                          <span>{Math.round((project.completedTasks / project.tasks) * 100)}%</span>
+                          <span>{getProgressPercentage(project.completedTasks, project.tasks)}%</span>
                         </div>
-                        <Progress value={(project.completedTasks / project.tasks) * 100} />
+                        <Progress value={getProgressPercentage(project.completedTasks, project.tasks)} />
                         <div className="flex justify-between text-xs text-muted-foreground">
                           <span>{project.completedTasks}/{project.tasks} tarefas</span>
                           <span>{project.members} membros</span>
