@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from '@/components/AppSidebar';
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Search, 
   Filter, 
@@ -20,10 +22,12 @@ import {
   StarOff,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  Building
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import CreateProjectDialog from '@/components/CreateProjectDialog';
+import InviteMembersDialog from '@/components/InviteMembersDialog';
 
 interface Project {
   id: string;
@@ -35,6 +39,7 @@ interface Project {
   completedTasks: number;
   dueDate: string;
   favorite: boolean;
+  companyId: string;
 }
 
 interface Company {
@@ -42,6 +47,11 @@ interface Company {
   name: string;
   role: 'admin' | 'member' | 'viewer';
 }
+
+const mockCompanies: Company[] = [
+  { id: '1', name: 'Minha Empresa', role: 'admin' },
+  { id: '2', name: 'Freelance Projects', role: 'member' },
+];
 
 const mockProjects: Project[] = [
   {
@@ -53,7 +63,8 @@ const mockProjects: Project[] = [
     tasks: 12,
     completedTasks: 8,
     dueDate: '2024-01-15',
-    favorite: true
+    favorite: true,
+    companyId: '1'
   },
   {
     id: '2',
@@ -64,7 +75,8 @@ const mockProjects: Project[] = [
     tasks: 24,
     completedTasks: 15,
     dueDate: '2024-02-28',
-    favorite: false
+    favorite: false,
+    companyId: '1'
   },
   {
     id: '3',
@@ -75,23 +87,63 @@ const mockProjects: Project[] = [
     tasks: 18,
     completedTasks: 5,
     dueDate: '2024-03-10',
-    favorite: true
+    favorite: true,
+    companyId: '2'
   }
 ];
 
 const Dashboard = () => {
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
+  const [allProjects, setAllProjects] = useState<Project[]>(mockProjects);
+  const [companies, setCompanies] = useState<Company[]>(mockCompanies);
+  const [currentCompany, setCurrentCompany] = useState<Company>(mockCompanies[0]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [currentCompany] = useState({ id: '1', name: 'Minha Empresa', role: 'Admin' });
+  const [memberFilter, setMemberFilter] = useState<string>('all');
   const [profileImage, setProfileImage] = useState('');
+  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const { toast } = useToast();
+
+  // Filtrar projetos pela empresa atual
+  const projects = allProjects.filter(project => project.companyId === currentCompany.id);
 
   const handleCreateProject = (newProject: Project) => {
-    setProjects([...projects, newProject]);
+    const projectWithCompany = {
+      ...newProject,
+      companyId: currentCompany.id
+    };
+    setAllProjects([...allProjects, projectWithCompany]);
+    setIsCreateProjectOpen(false);
+    toast({
+      title: "Projeto criado!",
+      description: `${newProject.name} foi criado com sucesso.`,
+    });
+  };
+
+  const handleCreateCompany = (name: string) => {
+    const newCompany: Company = {
+      id: Date.now().toString(),
+      name,
+      role: 'admin'
+    };
+    setCompanies([...companies, newCompany]);
+    setCurrentCompany(newCompany);
+    toast({
+      title: "Empresa criada!",
+      description: `${name} foi criada com sucesso.`,
+    });
+  };
+
+  const handleCompanyChange = (company: Company) => {
+    setCurrentCompany(company);
+    toast({
+      title: "Empresa alterada",
+      description: `Agora você está trabalhando em ${company.name}.`,
+    });
   };
 
   const toggleFavorite = (projectId: string) => {
-    setProjects(projects.map(project => 
+    setAllProjects(allProjects.map(project => 
       project.id === projectId 
         ? { ...project, favorite: !project.favorite }
         : project
@@ -99,22 +151,31 @@ const Dashboard = () => {
   };
 
   const deleteProject = (projectId: string) => {
-    setProjects(projects.filter(project => project.id !== projectId));
+    setAllProjects(allProjects.filter(project => project.id !== projectId));
+    toast({
+      title: "Projeto excluído",
+      description: "O projeto foi excluído com sucesso.",
+      variant: "destructive"
+    });
   };
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          project.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesMembers = memberFilter === 'all' || 
+                          (memberFilter === 'small' && project.members <= 3) ||
+                          (memberFilter === 'medium' && project.members > 3 && project.members <= 6) ||
+                          (memberFilter === 'large' && project.members > 6);
+    return matchesSearch && matchesStatus && matchesMembers;
   });
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      case 'paused': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'completed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+      case 'paused': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
     }
   };
 
@@ -136,14 +197,18 @@ const Dashboard = () => {
           onProfileImageChange={setProfileImage}
           projects={projects}
           onCreateProject={handleCreateProject}
+          companies={companies}
+          onCompanyChange={handleCompanyChange}
+          onCreateCompany={handleCreateCompany}
         />
         
         <SidebarInset className="flex-1">
-          {/* Header com SidebarTrigger para mobile */}
+          {/* Header Mobile */}
           <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 md:hidden">
             <SidebarTrigger />
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-semibold">Dashboard</h1>
+            <div className="flex items-center gap-2 flex-1">
+              <Building className="h-5 w-5 text-blue-600" />
+              <h1 className="text-lg font-semibold truncate">{currentCompany.name}</h1>
             </div>
           </header>
 
@@ -153,13 +218,22 @@ const Dashboard = () => {
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
                 <p className="text-muted-foreground">
-                  Gerencie seus projetos e acompanhe o progresso da equipe
+                  Gerencie seus projetos em {currentCompany.name}
                 </p>
               </div>
-              <CreateProjectDialog onCreateProject={handleCreateProject} />
+              <div className="flex gap-2">
+                <Button onClick={() => setIsInviteOpen(true)} variant="outline">
+                  <Users className="h-4 w-4 mr-2" />
+                  Convidar Membros
+                </Button>
+                <Button onClick={() => setIsCreateProjectOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Projeto
+                </Button>
+              </div>
             </div>
 
-            {/* Filtros e Busca */}
+            {/* Filtros e Busca Avançada */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex flex-1 items-center space-x-2">
                 <div className="relative flex-1 max-w-sm">
@@ -172,7 +246,7 @@ const Dashboard = () => {
                   />
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[150px]">
+                  <SelectTrigger className="w-[120px]">
                     <Filter className="mr-2 h-4 w-4" />
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
@@ -183,11 +257,18 @@ const Dashboard = () => {
                     <SelectItem value="paused">Pausado</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              
-              {/* Botão criar projeto mobile */}
-              <div className="md:hidden">
-                <CreateProjectDialog onCreateProject={handleCreateProject} />
+                <Select value={memberFilter} onValueChange={setMemberFilter}>
+                  <SelectTrigger className="w-[120px]">
+                    <Users className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Equipe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="small">1-3 membros</SelectItem>
+                    <SelectItem value="medium">4-6 membros</SelectItem>
+                    <SelectItem value="large">7+ membros</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -198,25 +279,12 @@ const Dashboard = () => {
                   <CardTitle className="text-sm font-medium">
                     Total de Projetos
                   </CardTitle>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    className="h-4 w-4 text-muted-foreground"
-                  >
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="m22 21-2-2" />
-                  </svg>
+                  <FolderKanban className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{projects.length}</div>
                   <p className="text-xs text-muted-foreground">
-                    +2 desde o mês passado
+                    em {currentCompany.name}
                   </p>
                 </CardContent>
               </Card>
@@ -226,19 +294,7 @@ const Dashboard = () => {
                   <CardTitle className="text-sm font-medium">
                     Projetos Ativos
                   </CardTitle>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    className="h-4 w-4 text-muted-foreground"
-                  >
-                    <rect width="20" height="14" x="2" y="5" rx="2" />
-                    <path d="M2 10h20" />
-                  </svg>
+                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
@@ -255,18 +311,7 @@ const Dashboard = () => {
                   <CardTitle className="text-sm font-medium">
                     Tarefas Concluídas
                   </CardTitle>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    className="h-4 w-4 text-muted-foreground"
-                  >
-                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                  </svg>
+                  <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
@@ -287,7 +332,7 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {Math.max(...projects.map(p => p.members))}
+                    {projects.length > 0 ? Math.max(...projects.map(p => p.members)) : 0}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Membros ativos
@@ -410,13 +455,28 @@ const Dashboard = () => {
                   <p className="text-muted-foreground mb-4">
                     Tente ajustar os filtros ou criar um novo projeto.
                   </p>
-                  <CreateProjectDialog onCreateProject={handleCreateProject} />
+                  <Button onClick={() => setIsCreateProjectOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Novo Projeto
+                  </Button>
                 </div>
               )}
             </div>
           </div>
         </SidebarInset>
       </div>
+
+      {/* Diálogos Desktop */}
+      <CreateProjectDialog 
+        open={isCreateProjectOpen}
+        onOpenChange={setIsCreateProjectOpen}
+        onCreateProject={handleCreateProject}
+      />
+      
+      <InviteMembersDialog 
+        open={isInviteOpen}
+        onOpenChange={setIsInviteOpen}
+      />
     </SidebarProvider>
   );
 };

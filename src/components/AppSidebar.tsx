@@ -5,12 +5,11 @@ import {
   Home, 
   FolderKanban, 
   Users, 
-  Settings, 
-  HelpCircle, 
   LogOut,
   Plus,
   BarChart3,
-  User
+  User,
+  Building
 } from 'lucide-react';
 import {
   Sidebar,
@@ -29,9 +28,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import CreateProjectDialog from './CreateProjectDialog';
-import SettingsDialog from './SettingsDialog';
-import HelpDialog from './HelpDialog';
 import InviteMembersDialog from './InviteMembersDialog';
+import CompanySelector from './CompanySelector';
 
 interface Project {
   id: string;
@@ -45,12 +43,21 @@ interface Project {
   favorite: boolean;
 }
 
+interface Company {
+  id: string;
+  name: string;
+  role: 'admin' | 'member' | 'viewer';
+}
+
 interface AppSidebarProps {
-  currentCompany: { id: string; name: string; role: string } | null;
+  currentCompany: Company | null;
   profileImage: string;
   onProfileImageChange: (image: string) => void;
   projects: Project[];
   onCreateProject: (project: Project) => void;
+  companies: Company[];
+  onCompanyChange: (company: Company) => void;
+  onCreateCompany: (name: string) => void;
 }
 
 const mainNavItems = [
@@ -64,14 +71,15 @@ export function AppSidebar({
   profileImage, 
   onProfileImageChange, 
   projects, 
-  onCreateProject 
+  onCreateProject,
+  companies,
+  onCompanyChange,
+  onCreateCompany
 }: AppSidebarProps) {
   const { state, isMobile } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   
   const isCollapsed = state === 'collapsed' && !isMobile;
@@ -86,13 +94,18 @@ export function AppSidebar({
     >
       <SidebarHeader className="p-4">
         {!isCollapsed && (
-          <div className="flex items-center space-x-2">
-            <div className="text-xl font-bold text-blue-600">Thursday</div>
-            {currentCompany && (
-              <div className="text-sm text-gray-600 truncate">
-                {currentCompany.name}
-              </div>
-            )}
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <div className="text-xl font-bold text-blue-600">Thursday</div>
+            </div>
+            
+            {/* Company Selector */}
+            <CompanySelector
+              companies={companies}
+              currentCompany={currentCompany}
+              onCompanyChange={onCompanyChange}
+              onCreateCompany={onCreateCompany}
+            />
           </div>
         )}
       </SidebarHeader>
@@ -150,42 +163,39 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <Separator className="my-2" />
-
-        {/* Ações Rápidas */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Ações</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  tooltip={isCollapsed ? "Novo Projeto" : undefined}
-                  onClick={() => setIsCreateProjectOpen(true)}
-                >
-                  <Plus className="h-4 w-4" />
-                  {!isCollapsed && <span className="ml-2">Novo Projeto</span>}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  tooltip={isCollapsed ? "Convidar Membros" : undefined}
-                  onClick={() => setIsInviteOpen(true)}
-                >
-                  <Users className="h-4 w-4" />
-                  {!isCollapsed && <span className="ml-2">Convidar Membros</span>}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* Ações Rápidas - Apenas Mobile */}
+        {isMobile && (
+          <>
+            <Separator className="my-2" />
+            <SidebarGroup>
+              <SidebarGroupLabel>Ações</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton onClick={() => setIsCreateProjectOpen(true)}>
+                      <Plus className="h-4 w-4" />
+                      <span className="ml-2">Novo Projeto</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  
+                  <SidebarMenuItem>
+                    <SidebarMenuButton onClick={() => setIsInviteOpen(true)}>
+                      <Users className="h-4 w-4" />
+                      <span className="ml-2">Convidar Membros</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="p-4">
         <div className="space-y-2">
           {/* Perfil do Usuário */}
           {!isCollapsed && (
-            <div className="flex items-center space-x-2 p-2 rounded-lg bg-gray-50">
+            <div className="flex items-center space-x-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={profileImage} />
                 <AvatarFallback>
@@ -194,71 +204,41 @@ export function AppSidebar({
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium truncate">Usuário</div>
-                <div className="text-xs text-gray-500 truncate">
+                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
                   {currentCompany?.role || 'Membro'}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Botões de Ação */}
-          <div className="flex space-x-1">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="flex-1"
-              title="Ajuda"
-              onClick={() => setIsHelpOpen(true)}
-            >
-              <HelpCircle className="h-4 w-4" />
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="flex-1"
-              title="Configurações"
-              onClick={() => setIsSettingsOpen(true)}
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-            
+          {/* Botão Sair - Apenas Mobile */}
+          {isMobile && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/')}
-              className="flex-1 text-red-600 hover:text-red-700"
-              title="Sair"
+              className="w-full text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4 mr-2" />
+              Sair
             </Button>
-          </div>
+          )}
         </div>
       </SidebarFooter>
 
-      {/* Diálogos */}
-      <CreateProjectDialog 
-        open={isCreateProjectOpen}
-        onOpenChange={setIsCreateProjectOpen}
-        onCreateProject={onCreateProject}
-      />
-      
-      <InviteMembersDialog 
-        open={isInviteOpen}
-        onOpenChange={setIsInviteOpen}
-      />
-      
-      <SettingsDialog
-        open={isSettingsOpen}
-        onOpenChange={setIsSettingsOpen}
-        currentProfileImage={profileImage}
-        onProfileImageChange={onProfileImageChange}
-      />
-      
-      <HelpDialog 
-        open={isHelpOpen}
-        onOpenChange={setIsHelpOpen}
-      />
+      {/* Diálogos - Apenas Mobile */}
+      {isMobile && (
+        <>
+          <CreateProjectDialog 
+            onCreateProject={onCreateProject}
+          />
+          
+          <InviteMembersDialog 
+            open={isInviteOpen}
+            onOpenChange={setIsInviteOpen}
+          />
+        </>
+      )}
     </Sidebar>
   );
 }
