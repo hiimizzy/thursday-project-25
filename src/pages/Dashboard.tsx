@@ -118,8 +118,17 @@ const Dashboard = () => {
   
   const { toast } = useToast();
   
-  // Inicializar sincronização em tempo real
-  useRealtimeSync(currentCompany.id);
+  // Fix: Pass proper options object to useRealtimeSync
+  useRealtimeSync({
+    entityType: 'company',
+    entityId: currentCompany.id,
+    onUpdate: (data) => {
+      console.log('Received realtime update:', data);
+    },
+    onError: (error) => {
+      console.error('Realtime sync error:', error);
+    }
+  });
 
   // Filtrar projetos pela empresa atual
   const projects = allProjects.filter(project => project.companyId === currentCompany.id);
