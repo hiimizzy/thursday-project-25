@@ -269,7 +269,7 @@ const Dashboard = () => {
               <Building className="h-5 w-5 text-blue-600" />
               <h1 className="text-lg font-semibold truncate">{currentCompany.name}</h1>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-1">
               <ThemeToggle />
               <HelpDialog trigger={
                 <Button variant="outline" size="sm">
@@ -279,7 +279,7 @@ const Dashboard = () => {
               <Button onClick={() => setIsInviteOpen(true)} variant="outline" size="sm">
                 <Users className="h-4 w-4" />
               </Button>
-              <Button onClick={() => setIsCreateProjectOpen(true)} size="sm">
+              <Button onClick={() => setIsCreateProjectOpen(true)} size="sm" className="px-2">
                 <Plus className="h-4 w-4" />
               </Button>
             </div>

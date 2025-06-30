@@ -7,7 +7,6 @@ import {
   Users, 
   LogOut,
   Plus,
-  BarChart3,
   User,
   Building
 } from 'lucide-react';
@@ -63,7 +62,6 @@ interface AppSidebarProps {
 const mainNavItems = [
   { title: 'Dashboard', url: '/dashboard', icon: Home },
   { title: 'Projetos', url: '/dashboard', icon: FolderKanban },
-  { title: 'Relatórios', url: '/reports', icon: BarChart3 },
 ];
 
 export function AppSidebar({ 
@@ -163,7 +161,7 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Ações Rápidas - Apenas Mobile */}
+        {/* Ações Rápidas - Apenas Mobile - Somente Convidar Membros */}
         {isMobile && (
           <>
             <Separator className="my-2" />
@@ -171,13 +169,6 @@ export function AppSidebar({
               <SidebarGroupLabel>Ações</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => setIsCreateProjectOpen(true)}>
-                      <Plus className="h-4 w-4" />
-                      <span className="ml-2">Novo Projeto</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  
                   <SidebarMenuItem>
                     <SidebarMenuButton onClick={() => setIsInviteOpen(true)}>
                       <Users className="h-4 w-4" />
@@ -226,18 +217,12 @@ export function AppSidebar({
         </div>
       </SidebarFooter>
 
-      {/* Diálogos - Apenas Mobile */}
+      {/* Diálogos - Apenas Mobile - Sem CreateProjectDialog */}
       {isMobile && (
-        <>
-          <CreateProjectDialog 
-            onCreateProject={onCreateProject}
-          />
-          
-          <InviteMembersDialog 
-            open={isInviteOpen}
-            onOpenChange={setIsInviteOpen}
-          />
-        </>
+        <InviteMembersDialog 
+          open={isInviteOpen}
+          onOpenChange={setIsInviteOpen}
+        />
       )}
     </Sidebar>
   );

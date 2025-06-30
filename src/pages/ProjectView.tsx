@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -83,35 +84,35 @@ const ProjectView = () => {
 
   if (!project) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando projeto...</p>
+          <p className="text-gray-600 dark:text-slate-300">Carregando projeto...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white dark:bg-slate-800 shadow-sm border-b dark:border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
                 onClick={() => navigate('/dashboard')}
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 dark:text-slate-200 dark:hover:bg-slate-700"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span>Voltar</span>
               </Button>
-              <div className="h-6 w-px bg-gray-300"></div>
-              <h1 className="text-xl font-semibold">{project.name}</h1>
+              <div className="h-6 w-px bg-gray-300 dark:bg-slate-600"></div>
+              <h1 className="text-xl font-semibold dark:text-slate-100">{project.name}</h1>
               <button
                 onClick={() => handleUpdateProject({ ...project, favorite: !project.favorite })}
-                className="text-gray-400 hover:text-yellow-500"
+                className="text-gray-400 hover:text-yellow-500 dark:text-slate-400 dark:hover:text-yellow-400"
               >
                 <Star className={`h-5 w-5 ${project.favorite ? 'fill-yellow-500 text-yellow-500' : ''}`} />
               </button>
@@ -119,7 +120,7 @@ const ProjectView = () => {
 
             <div className="flex items-center space-x-4">
               {/* Project Info */}
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
+              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-slate-300">
                 <div className="flex items-center space-x-1">
                   <Target className="h-4 w-4" />
                   <span>{project.completedTasks}/{project.tasks} tarefas</span>
@@ -140,7 +141,7 @@ const ProjectView = () => {
 
               {/* Actions */}
               <ShareProjectDialog project={project}>
-                <Button variant="outline" className="flex items-center space-x-2">
+                <Button variant="outline" className="flex items-center space-x-2 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
                   <Share className="h-4 w-4" />
                   <span>Compartilhar</span>
                 </Button>
@@ -148,7 +149,7 @@ const ProjectView = () => {
 
               <SettingsDialog 
                 trigger={
-                  <Button variant="outline">
+                  <Button variant="outline" className="dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
                     <Settings className="h-4 w-4 mr-2" />
                     Configurações
                   </Button>
@@ -157,7 +158,7 @@ const ProjectView = () => {
 
               {/* User Avatar */}
               <Avatar className="h-8 w-8">
-                <AvatarFallback>U</AvatarFallback>
+                <AvatarFallback className="dark:bg-slate-700 dark:text-slate-200">U</AvatarFallback>
               </Avatar>
             </div>
           </div>
