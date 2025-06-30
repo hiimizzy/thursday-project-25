@@ -7,8 +7,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Plus } from 'lucide-react';
 
+interface Project {
+  id: string;
+  name: string;
+  description: string;
+  status: 'active' | 'completed' | 'paused';
+  members: number;
+  tasks: number;
+  completedTasks: number;
+  dueDate: string;
+  favorite: boolean;
+  companyId: string;
+}
+
 interface CreateProjectDialogProps {
-  onCreateProject: (project: any) => void;
+  onCreateProject: (project: Project) => void;
 }
 
 const CreateProjectDialog = ({ onCreateProject }: CreateProjectDialogProps) => {
@@ -19,7 +32,7 @@ const CreateProjectDialog = ({ onCreateProject }: CreateProjectDialogProps) => {
 
   const handleCreate = () => {
     if (projectName.trim()) {
-      const newProject = {
+      const newProject: Project = {
         id: Date.now().toString(),
         name: projectName,
         description: projectDescription,
@@ -28,16 +41,8 @@ const CreateProjectDialog = ({ onCreateProject }: CreateProjectDialogProps) => {
         tasks: 0,
         completedTasks: 0,
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
-        view: projectView,
         favorite: false,
-        columns: [
-          { id: '1', name: 'Item', type: 'text', width: 200 },
-          { id: '2', name: 'Status', type: 'status', width: 150, options: ['Pendente', 'Em Progresso', 'Concluído'] },
-          { id: '3', name: 'Responsável', type: 'person', width: 150 },
-          { id: '4', name: 'Data', type: 'date', width: 120 },
-          { id: '5', name: 'Prioridade', type: 'dropdown', width: 120, options: ['Baixa', 'Média', 'Alta'] }
-        ],
-        items: []
+        companyId: '' // Will be set by parent component
       };
       
       onCreateProject(newProject);

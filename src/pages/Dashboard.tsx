@@ -1,18 +1,14 @@
-
 import { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from '@/components/AppSidebar';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Search, 
-  Filter, 
   Plus, 
   Calendar, 
   Users, 
@@ -23,11 +19,14 @@ import {
   Eye,
   Edit,
   Trash2,
-  Building
+  Building,
+  FolderKanban
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import CreateProjectDialog from '@/components/CreateProjectDialog';
 import InviteMembersDialog from '@/components/InviteMembersDialog';
+import ProjectSearch from '@/components/ProjectSearch';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 
 interface Project {
   id: string;
@@ -46,6 +45,15 @@ interface Company {
   id: string;
   name: string;
   role: 'admin' | 'member' | 'viewer';
+}
+
+interface SearchFilters {
+  search: string;
+  status: string;
+  members: string;
+  dateFrom: Date | null;
+  dateTo: Date | null;
+  assignee: string;
 }
 
 const mockCompanies: Company[] = [
@@ -96,13 +104,22 @@ const Dashboard = () => {
   const [allProjects, setAllProjects] = useState<Project[]>(mockProjects);
   const [companies, setCompanies] = useState<Company[]>(mockCompanies);
   const [currentCompany, setCurrentCompany] = useState<Company>(mockCompanies[0]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [memberFilter, setMemberFilter] = useState<string>('all');
   const [profileImage, setProfileImage] = useState('');
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [filters, setFilters] = useState<SearchFilters>({
+    search: '',
+    status: 'all',
+    members: 'all',
+    dateFrom: null,
+    dateTo: null,
+    assignee: 'all'
+  });
+  
   const { toast } = useToast();
+  
+  // Inicializar sincronização em tempo real
+  useRealtimeSync(currentCompany.id);
 
   // Filtrar projetos pela empresa atual
   const projects = allProjects.filter(project => project.companyId === currentCompany.id);
@@ -159,15 +176,39 @@ const Dashboard = () => {
     });
   };
 
+  const clearFilters = () => {
+    setFilters({
+      search: '',
+      status: 'all',
+      members: 'all',
+      dateFrom: null,
+      dateTo: null,
+      assignee: 'all'
+    });
+  };
+
+  // Aplicar filtros
   const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
-    const matchesMembers = memberFilter === 'all' || 
-                          (memberFilter === 'small' && project.members <= 3) ||
-                          (memberFilter === 'medium' && project.members > 3 && project.members <= 6) ||
-                          (memberFilter === 'large' && project.members > 6);
-    return matchesSearch && matchesStatus && matchesMembers;
+    const matchesSearch = project.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+                         project.description.toLowerCase().includes(filters.search.toLowerCase());
+    
+    const matchesStatus = filters.status === 'all' || project.status === filters.status;
+    
+    const matchesMembers = filters.members === 'all' || 
+                          (filters.members === 'small' && project.members <= 3) ||
+                          (filters.members === 'medium' && project.members > 3 && project.members <= 6) ||
+                          (filters.members === 'large' && project.members > 6);
+    
+    const matchesAssignee = filters.assignee === 'all';
+    
+    let matchesDate = true;
+    if (filters.dateFrom || filters.dateTo) {
+      const projectDate = new Date(project.dueDate);
+      if (filters.dateFrom && projectDate < filters.dateFrom) matchesDate = false;
+      if (filters.dateTo && projectDate > filters.dateTo) matchesDate = false;
+    }
+    
+    return matchesSearch && matchesStatus && matchesMembers && matchesAssignee && matchesDate;
   });
 
   const getStatusColor = (status: string) => {
@@ -210,6 +251,14 @@ const Dashboard = () => {
               <Building className="h-5 w-5 text-blue-600" />
               <h1 className="text-lg font-semibold truncate">{currentCompany.name}</h1>
             </div>
+            <div className="flex gap-2">
+              <Button onClick={() => setIsInviteOpen(true)} variant="outline" size="sm">
+                <Users className="h-4 w-4" />
+              </Button>
+              <Button onClick={() => setIsCreateProjectOpen(true)} size="sm">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </header>
 
           <div className="flex-1 space-y-4 p-4 md:p-8">
@@ -221,56 +270,14 @@ const Dashboard = () => {
                   Gerencie seus projetos em {currentCompany.name}
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Button onClick={() => setIsInviteOpen(true)} variant="outline">
-                  <Users className="h-4 w-4 mr-2" />
-                  Convidar Membros
-                </Button>
-                <Button onClick={() => setIsCreateProjectOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Projeto
-                </Button>
-              </div>
             </div>
 
-            {/* Filtros e Busca Avançada */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex flex-1 items-center space-x-2">
-                <div className="relative flex-1 max-w-sm">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar projetos..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[120px]">
-                    <Filter className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="active">Ativo</SelectItem>
-                    <SelectItem value="completed">Concluído</SelectItem>
-                    <SelectItem value="paused">Pausado</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={memberFilter} onValueChange={setMemberFilter}>
-                  <SelectTrigger className="w-[120px]">
-                    <Users className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Equipe" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    <SelectItem value="small">1-3 membros</SelectItem>
-                    <SelectItem value="medium">4-6 membros</SelectItem>
-                    <SelectItem value="large">7+ membros</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            {/* Busca e Filtros Avançados */}
+            <ProjectSearch 
+              filters={filters}
+              onFiltersChange={setFilters}
+              onClearFilters={clearFilters}
+            />
 
             {/* Estatísticas */}
             <div className="grid gap-4 md:grid-cols-4">
@@ -466,10 +473,8 @@ const Dashboard = () => {
         </SidebarInset>
       </div>
 
-      {/* Diálogos Desktop */}
+      {/* Diálogos */}
       <CreateProjectDialog 
-        open={isCreateProjectOpen}
-        onOpenChange={setIsCreateProjectOpen}
         onCreateProject={handleCreateProject}
       />
       
