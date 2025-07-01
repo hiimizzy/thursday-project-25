@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from '@/components/AppSidebar';
@@ -127,11 +126,11 @@ const Dashboard = () => {
         if (companiesError) {
           console.error('❌ Erro ao carregar empresas:', companiesError);
         } else {
-          const userCompanies = companiesData.map(item => ({
+          const userCompanies = companiesData?.map(item => ({
             id: item.companies.id,
             name: item.companies.name,
             role: item.role as 'admin' | 'member' | 'viewer'
-          }));
+          })) || [];
           
           setCompanies(userCompanies);
           
@@ -203,7 +202,7 @@ const Dashboard = () => {
   const projects = allProjects.filter(project => project.companyId === currentCompany?.id);
 
   const handleCreateProject = async (newProject: Project) => {
-    if (!permissions.canCreateProjects || !currentCompany || !user) {
+    if (!permissions.canEdit || !currentCompany || !user) {
       toast({
         title: "❌ Sem permissão",
         description: "Você não tem permissão para criar projetos",
@@ -269,7 +268,7 @@ const Dashboard = () => {
 
   const toggleFavorite = async (projectId: string) => {
     const project = allProjects.find(p => p.id === projectId);
-    if (!project || !permissions.canEditProjects) return;
+    if (!project || !permissions.canEdit) return;
 
     // Atualização otimista
     setAllProjects(allProjects.map(project => 
@@ -299,7 +298,7 @@ const Dashboard = () => {
   };
 
   const deleteProject = async (projectId: string) => {
-    if (!permissions.canDeleteProjects) {
+    if (!permissions.canDelete) {
       toast({
         title: "❌ Sem permissão",
         description: "Você não tem permissão para deletar projetos",
