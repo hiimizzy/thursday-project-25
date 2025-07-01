@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -66,10 +65,10 @@ const ProjectView = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      case 'paused': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'completed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+      case 'paused': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
     }
   };
 
@@ -97,30 +96,30 @@ const ProjectView = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       {/* Header */}
       <header className="bg-white dark:bg-slate-800 shadow-sm border-b dark:border-slate-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
               <Button
                 variant="ghost"
                 onClick={() => navigate('/dashboard')}
-                className="flex items-center space-x-2 dark:text-slate-200 dark:hover:bg-slate-700"
+                className="flex items-center space-x-1 sm:space-x-2 dark:text-slate-200 dark:hover:bg-slate-700 p-1 sm:p-2"
               >
                 <ArrowLeft className="h-4 w-4" />
-                <span>Voltar</span>
+                <span className="hidden sm:inline">Voltar</span>
               </Button>
-              <div className="h-6 w-px bg-gray-300 dark:bg-slate-600"></div>
-              <h1 className="text-xl font-semibold dark:text-slate-100">{project.name}</h1>
+              <div className="h-4 sm:h-6 w-px bg-gray-300 dark:bg-slate-600"></div>
+              <h1 className="text-sm sm:text-lg lg:text-xl font-semibold dark:text-slate-100 truncate">{project.name}</h1>
               <button
                 onClick={() => handleUpdateProject({ ...project, favorite: !project.favorite })}
-                className="text-gray-400 hover:text-yellow-500 dark:text-slate-400 dark:hover:text-yellow-400"
+                className="text-gray-400 hover:text-yellow-500 dark:text-slate-400 dark:hover:text-yellow-400 flex-shrink-0"
               >
-                <Star className={`h-5 w-5 ${project.favorite ? 'fill-yellow-500 text-yellow-500' : ''}`} />
+                <Star className={`h-4 w-4 sm:h-5 sm:w-5 ${project.favorite ? 'fill-yellow-500 text-yellow-500' : ''}`} />
               </button>
             </div>
 
-            <div className="flex items-center space-x-4">
-              {/* Project Info */}
-              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-slate-300">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              {/* Project Info - Hidden on small screens */}
+              <div className="hidden md:flex items-center space-x-4 text-sm text-gray-600 dark:text-slate-300">
                 <div className="flex items-center space-x-1">
                   <Target className="h-4 w-4" />
                   <span>{project.completedTasks}/{project.tasks} tarefas</span>
@@ -135,38 +134,43 @@ const ProjectView = () => {
                 </div>
               </div>
 
+              {/* Compact project info for small screens */}
+              <div className="flex md:hidden items-center space-x-2 text-xs text-gray-600 dark:text-slate-300">
+                <div className="flex items-center space-x-1">
+                  <Target className="h-3 w-3" />
+                  <span>{project.completedTasks}/{project.tasks}</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Users className="h-3 w-3" />
+                  <span>{project.members}</span>
+                </div>
+              </div>
+
               <Badge className={getStatusColor(project.status)}>
                 {getStatusLabel(project.status)}
               </Badge>
 
               {/* Actions */}
-              <ShareProjectDialog project={project}>
-                <Button variant="outline" className="flex items-center space-x-2 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
-                  <Share className="h-4 w-4" />
-                  <span>Compartilhar</span>
-                </Button>
-              </ShareProjectDialog>
-
-              <SettingsDialog 
-                trigger={
-                  <Button variant="outline" className="dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Configurações
+              <div className="flex items-center space-x-1 sm:space-x-2">
+                <ShareProjectDialog project={project}>
+                  <Button variant="outline" size="sm" className="dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700 p-1 sm:p-2">
+                    <Share className="h-4 w-4" />
+                    <span className="hidden lg:inline ml-1 sm:ml-2">Compartilhar</span>
                   </Button>
-                }
-              />
+                </ShareProjectDialog>
 
-              {/* User Avatar */}
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="dark:bg-slate-700 dark:text-slate-200">U</AvatarFallback>
-              </Avatar>
+                {/* User Avatar */}
+                <Avatar className="h-6 w-6 sm:h-8 sm:w-8">
+                  <AvatarFallback className="dark:bg-slate-700 dark:text-slate-200 text-xs">U</AvatarFallback>
+                </Avatar>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto">
+      <main className="max-w-7xl mx-auto px-0 sm:px-4 lg:px-8">
         <BoardView project={project} onUpdateProject={handleUpdateProject} />
       </main>
     </div>

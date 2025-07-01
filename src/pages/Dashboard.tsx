@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from '@/components/AppSidebar';
@@ -263,47 +264,53 @@ const Dashboard = () => {
         
         <SidebarInset className="flex-1">
           {/* Header Mobile */}
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 md:hidden">
-            <SidebarTrigger />
-            <div className="flex items-center gap-2 flex-1">
-              <Building className="h-5 w-5 text-blue-600" />
-              <h1 className="text-lg font-semibold truncate">{currentCompany.name}</h1>
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3 sm:px-4 md:hidden">
+            <SidebarTrigger className="h-8 w-8" />
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Building className="h-4 w-4 text-blue-600 flex-shrink-0" />
+              <h1 className="text-base font-semibold truncate">{currentCompany.name}</h1>
             </div>
             <div className="flex gap-1">
               <ThemeToggle />
               <HelpDialog trigger={
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0">
                   <CircleHelp className="h-4 w-4" />
                 </Button>
               } />
-              <Button onClick={() => setIsInviteOpen(true)} variant="outline" size="sm">
+              <Button onClick={() => setIsInviteOpen(true)} variant="outline" size="sm" className="h-8 w-8 p-0">
                 <Users className="h-4 w-4" />
               </Button>
-              <Button onClick={() => setIsCreateProjectOpen(true)} size="sm" className="px-2">
+              <Button onClick={() => setIsCreateProjectOpen(true)} size="sm" className="h-8 w-8 p-0">
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
           </header>
 
-          <div className="flex-1 space-y-4 p-4 md:p-8">
+          <div className="flex-1 space-y-4 p-3 sm:p-4 md:p-6 lg:p-8">
             {/* Header Desktop */}
             <div className="hidden md:flex md:items-center md:justify-between">
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-                <p className="text-muted-foreground">
+                <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Dashboard</h1>
+                <p className="text-muted-foreground text-sm lg:text-base">
                   Gerencie seus projetos em {currentCompany.name}
                 </p>
               </div>
               <div className="flex gap-2">
                 <ThemeToggle />
                 <HelpDialog />
-                <Button onClick={() => setIsInviteOpen(true)} variant="outline">
+                <Button onClick={() => setIsInviteOpen(true)} variant="outline" className="hidden lg:flex">
                   <Users className="h-4 w-4 mr-2" />
                   Convidar
                 </Button>
-                <Button onClick={() => setIsCreateProjectOpen(true)}>
+                <Button onClick={() => setIsInviteOpen(true)} variant="outline" className="lg:hidden">
+                  <Users className="h-4 w-4" />
+                </Button>
+                <Button onClick={() => setIsCreateProjectOpen(true)} className="hidden lg:flex">
                   <Plus className="h-4 w-4 mr-2" />
                   Novo Projeto
+                </Button>
+                <Button onClick={() => setIsCreateProjectOpen(true)} className="lg:hidden">
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -316,17 +323,17 @@ const Dashboard = () => {
             />
 
             {/* Estatísticas */}
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total de Projetos
+                  <CardTitle className="text-xs sm:text-sm font-medium">
+                    Projetos
                   </CardTitle>
-                  <FolderKanban className="h-4 w-4 text-muted-foreground" />
+                  <FolderKanban className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{projects.length}</div>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="text-lg sm:text-2xl font-bold">{projects.length}</div>
+                  <p className="text-xs text-muted-foreground truncate">
                     em {currentCompany.name}
                   </p>
                 </CardContent>
@@ -334,13 +341,13 @@ const Dashboard = () => {
               
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Projetos Ativos
+                  <CardTitle className="text-xs sm:text-sm font-medium">
+                    Ativos
                   </CardTitle>
                   <div className="h-2 w-2 bg-green-500 rounded-full"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
+                  <div className="text-lg sm:text-2xl font-bold">
                     {projects.filter(p => p.status === 'active').length}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -351,34 +358,34 @@ const Dashboard = () => {
               
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Tarefas Concluídas
+                  <CardTitle className="text-xs sm:text-sm font-medium">
+                    Concluídas
                   </CardTitle>
                   <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
+                  <div className="text-lg sm:text-2xl font-bold">
                     {projects.reduce((acc, p) => acc + p.completedTasks, 0)}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    De {projects.reduce((acc, p) => acc + p.tasks, 0)} tarefas
+                    Tarefas
                   </p>
                 </CardContent>
               </Card>
               
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Membros da Equipe
+                  <CardTitle className="text-xs sm:text-sm font-medium">
+                    Membros
                   </CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
+                  <div className="text-lg sm:text-2xl font-bold">
                     {projects.length > 0 ? Math.max(...projects.map(p => p.members)) : 0}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Membros ativos
+                    Ativos
                   </p>
                 </CardContent>
               </Card>
@@ -387,22 +394,22 @@ const Dashboard = () => {
             {/* Lista de Projetos */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Seus Projetos</h2>
-                <span className="text-sm text-muted-foreground">
-                  {filteredProjects.length} projeto(s) encontrado(s)
+                <h2 className="text-lg sm:text-xl font-semibold">Seus Projetos</h2>
+                <span className="text-xs sm:text-sm text-muted-foreground">
+                  {filteredProjects.length} projeto(s)
                 </span>
               </div>
               
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 {filteredProjects.map((project) => (
                   <Card key={project.id} className="hover:shadow-md transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <CardTitle className="text-lg">{project.name}</CardTitle>
-                          <CardDescription>{project.description}</CardDescription>
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <CardTitle className="text-base sm:text-lg truncate">{project.name}</CardTitle>
+                          <CardDescription className="text-xs sm:text-sm line-clamp-2">{project.description}</CardDescription>
                         </div>
-                        <div className="flex items-center space-x-1">
+                        <div className="flex items-center space-x-1 ml-2">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -442,14 +449,19 @@ const Dashboard = () => {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-3 sm:space-y-4">
                       <div className="flex items-center justify-between text-sm">
                         <Badge className={getStatusColor(project.status)}>
                           {getStatusText(project.status)}
                         </Badge>
-                        <div className="flex items-center text-muted-foreground">
-                          <Calendar className="mr-1 h-4 w-4" />
-                          {new Date(project.dueDate).toLocaleDateString('pt-BR')}
+                        <div className="flex items-center text-muted-foreground text-xs">
+                          <Calendar className="mr-1 h-3 w-3" />
+                          <span className="hidden sm:inline">
+                            {new Date(project.dueDate).toLocaleDateString('pt-BR')}
+                          </span>
+                          <span className="sm:hidden">
+                            {new Date(project.dueDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                          </span>
                         </div>
                       </div>
                       
@@ -481,7 +493,8 @@ const Dashboard = () => {
                         </div>
                         <div className="flex items-center text-xs text-muted-foreground">
                           <Clock className="mr-1 h-3 w-3" />
-                          Atualizado há 2h
+                          <span className="hidden sm:inline">Atualizado há 2h</span>
+                          <span className="sm:hidden">2h</span>
                         </div>
                       </div>
                     </CardContent>
@@ -490,12 +503,12 @@ const Dashboard = () => {
               </div>
               
               {filteredProjects.length === 0 && (
-                <div className="text-center py-12">
+                <div className="text-center py-8 sm:py-12">
                   <div className="mx-auto h-12 w-12 text-muted-foreground mb-4">
                     <Search className="h-full w-full" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Nenhum projeto encontrado</h3>
-                  <p className="text-muted-foreground mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold mb-2">Nenhum projeto encontrado</h3>
+                  <p className="text-muted-foreground mb-4 text-sm px-4">
                     Tente ajustar os filtros ou criar um novo projeto.
                   </p>
                   <Button onClick={() => setIsCreateProjectOpen(true)}>
