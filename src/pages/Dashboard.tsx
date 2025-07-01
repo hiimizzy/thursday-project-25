@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from '@/components/AppSidebar';
 import { Button } from "@/components/ui/button";
@@ -27,9 +27,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import CreateProjectDialog from '@/components/CreateProjectDialog';
 import InviteMembersDialog from '@/components/InviteMembersDialog';
 import ProjectSearch from '@/components/ProjectSearch';
-import { useRealtimeSync } from '@/hooks/useRealtimeSync';
-import HelpDialog from '@/components/HelpDialog';
+import { useRealtimeSync, usePermissions } from '@/hooks/useRealtimeSync';
+import { supabase } from '@/integrations/supabase/client';
 import ThemeToggle from '@/components/ThemeToggle';
+import HelpDialog from '@/components/HelpDialog';
 
 interface Project {
   id: string;
@@ -59,57 +60,14 @@ interface SearchFilters {
   assignee: string;
 }
 
-const mockCompanies: Company[] = [
-  { id: '1', name: 'Minha Empresa', role: 'admin' },
-  { id: '2', name: 'Freelance Projects', role: 'member' },
-];
-
-const mockProjects: Project[] = [
-  {
-    id: '1',
-    name: 'Redesign do Site',
-    description: 'Atualização completa da interface do usuário',
-    status: 'active',
-    members: 4,
-    tasks: 12,
-    completedTasks: 8,
-    dueDate: '2024-01-15',
-    favorite: true,
-    companyId: '1'
-  },
-  {
-    id: '2',
-    name: 'App Mobile',
-    description: 'Desenvolvimento do aplicativo móvel',
-    status: 'active',
-    members: 6,
-    tasks: 24,
-    completedTasks: 15,
-    dueDate: '2024-02-28',
-    favorite: false,
-    companyId: '1'
-  },
-  {
-    id: '3',
-    name: 'Sistema de CRM',
-    description: 'Implementação do sistema de gestão de clientes',
-    status: 'paused',
-    members: 3,
-    tasks: 18,
-    completedTasks: 5,
-    dueDate: '2024-03-10',
-    favorite: true,
-    companyId: '2'
-  }
-];
-
 const Dashboard = () => {
-  const [allProjects, setAllProjects] = useState<Project[]>(mockProjects);
-  const [companies, setCompanies] = useState<Company[]>(mockCompanies);
-  const [currentCompany, setCurrentCompany] = useState<Company>(mockCompanies[0]);
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [currentCompany, setCurrentCompany] = useState<Company | null>(null);
   const [profileImage, setProfileImage] = useState('');
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState<SearchFilters>({
     search: '',
     status: 'all',
@@ -121,17 +79,117 @@ const Dashboard = () => {
   
   const { toast } = useToast();
   
-  // Fix: Pass proper options object to useRealtimeSync
+  // Usar permissões do Supabase
+  const { permissions, user } = usePermissions(currentCompany?.id || '');
+  
+  // Sincronização em tempo real
   useRealtimeSync({
     entityType: 'company',
-    entityId: currentCompany.id,
+    entityId: currentCompany?.id || '',
     onUpdate: (data) => {
-      console.log('Received realtime update:', data);
+      console.log('📡 Empresa atualizada em tempo real:', data);
+      // Recarregar projetos quando houver atualizações
+      if (data.event === 'UPDATE' || data.event === 'INSERT') {
+        loadProjects();
+      }
     },
     onError: (error) => {
-      console.error('Realtime sync error:', error);
+      console.error('❌ Erro na sincronização:', error);
     }
   });
+
+  // Carregar dados do Supabase
+  useEffect(() => {
+    const loadUserData = async () => {
+      setIsLoading(true);
+      
+      try {
+        // Verificar usuário autenticado
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          console.log('❌ Usuário não autenticado');
+          setIsLoading(false);
+          return;
+        }
+
+        // Carregar empresas do usuário
+        const { data: companiesData, error: companiesError } = await supabase
+          .from('company_members')
+          .select(`
+            role,
+            companies!inner(id, name, created_at)
+          `)
+          .eq('user_id', user.id);
+
+        if (companiesError) {
+          console.error('❌ Erro ao carregar empresas:', companiesError);
+        } else {
+          const userCompanies = companiesData.map(item => ({
+            id: item.companies.id,
+            name: item.companies.name,
+            role: item.role as 'admin' | 'member' | 'viewer'
+          }));
+          
+          setCompanies(userCompanies);
+          
+          if (userCompanies.length > 0) {
+            setCurrentCompany(userCompanies[0]);
+          }
+        }
+
+      } catch (error) {
+        console.error('❌ Erro ao carregar dados do usuário:', error);
+        toast({
+          title: "❌ Erro ao carregar dados",
+          description: "Tente recarregar a página",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, [toast]);
+
+  // Carregar projetos da empresa atual
+  const loadProjects = useCallback(async () => {
+    if (!currentCompany || !user) return;
+
+    try {
+      const { data: projectsData, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('company_id', currentCompany.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Erro ao carregar projetos:', error);
+      } else {
+        const mappedProjects = projectsData.map(project => ({
+          id: project.id,
+          name: project.name,
+          description: project.description || '',
+          status: project.status,
+          members: project.members || 1,
+          tasks: project.tasks || 0,
+          completedTasks: project.completed_tasks || 0,
+          dueDate: project.due_date || new Date().toISOString(),
+          favorite: project.favorite || false,
+          companyId: project.company_id
+        }));
+        
+        setAllProjects(mappedProjects);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar projetos:', error);
+    }
+  }, [currentCompany, user]);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
 
   // Fix NaN% calculation
   const getProgressPercentage = (completed: number, total: number) => {
@@ -140,19 +198,140 @@ const Dashboard = () => {
   };
 
   // Filtrar projetos pela empresa atual
-  const projects = allProjects.filter(project => project.companyId === currentCompany.id);
+  const projects = allProjects.filter(project => project.companyId === currentCompany?.id);
 
-  const handleCreateProject = (newProject: Project) => {
-    const projectWithCompany = {
-      ...newProject,
-      companyId: currentCompany.id
-    };
-    setAllProjects([...allProjects, projectWithCompany]);
-    setIsCreateProjectOpen(false);
-    toast({
-      title: "Projeto criado!",
-      description: `${newProject.name} foi criado com sucesso.`,
-    });
+  const handleCreateProject = async (newProject: Project) => {
+    if (!permissions.canCreateProjects || !currentCompany || !user) {
+      toast({
+        title: "❌ Sem permissão",
+        description: "Você não tem permissão para criar projetos",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .insert({
+          name: newProject.name,
+          description: newProject.description,
+          company_id: currentCompany.id,
+          status: 'active',
+          created_by: user.id,
+          members: 1,
+          tasks: 0,
+          completed_tasks: 0,
+          due_date: newProject.dueDate,
+          favorite: false
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Erro ao criar projeto:', error);
+        throw error;
+      }
+
+      // Atualizar lista local
+      const projectWithCompany = {
+        id: data.id,
+        name: data.name,
+        description: data.description || '',
+        status: data.status,
+        members: data.members || 1,
+        tasks: data.tasks || 0,
+        completedTasks: data.completed_tasks || 0,
+        dueDate: data.due_date || new Date().toISOString(),
+        favorite: data.favorite || false,
+        companyId: data.company_id
+      };
+
+      setAllProjects(prev => [projectWithCompany, ...prev]);
+      setIsCreateProjectOpen(false);
+      
+      toast({
+        title: "✅ Projeto criado!",
+        description: `${newProject.name} foi criado com sucesso.`,
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao criar projeto:', error);
+      toast({
+        title: "❌ Erro ao criar projeto",
+        description: "Tente novamente mais tarde",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const toggleFavorite = async (projectId: string) => {
+    const project = allProjects.find(p => p.id === projectId);
+    if (!project || !permissions.canEditProjects) return;
+
+    // Atualização otimista
+    setAllProjects(allProjects.map(project => 
+      project.id === projectId 
+        ? { ...project, favorite: !project.favorite }
+        : project
+    ));
+
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ favorite: !project.favorite })
+        .eq('id', projectId);
+
+      if (error) {
+        console.error('❌ Erro ao atualizar favorito:', error);
+        // Reverter mudança em caso de erro
+        setAllProjects(allProjects.map(project => 
+          project.id === projectId 
+            ? { ...project, favorite: project.favorite }
+            : project
+        ));
+      }
+    } catch (error) {
+      console.error('❌ Erro ao atualizar favorito:', error);
+    }
+  };
+
+  const deleteProject = async (projectId: string) => {
+    if (!permissions.canDeleteProjects) {
+      toast({
+        title: "❌ Sem permissão",
+        description: "Você não tem permissão para deletar projetos",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (error) {
+        console.error('❌ Erro ao deletar projeto:', error);
+        throw error;
+      }
+
+      setAllProjects(allProjects.filter(project => project.id !== projectId));
+      
+      toast({
+        title: "✅ Projeto excluído",
+        description: "O projeto foi excluído com sucesso.",
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao deletar projeto:', error);
+      toast({
+        title: "❌ Erro ao deletar projeto",
+        description: "Tente novamente mais tarde",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCreateCompany = (name: string) => {
@@ -177,23 +356,6 @@ const Dashboard = () => {
     });
   };
 
-  const toggleFavorite = (projectId: string) => {
-    setAllProjects(allProjects.map(project => 
-      project.id === projectId 
-        ? { ...project, favorite: !project.favorite }
-        : project
-    ));
-  };
-
-  const deleteProject = (projectId: string) => {
-    setAllProjects(allProjects.filter(project => project.id !== projectId));
-    toast({
-      title: "Projeto excluído",
-      description: "O projeto foi excluído com sucesso.",
-      variant: "destructive"
-    });
-  };
-
   const clearFilters = () => {
     setFilters({
       search: '',
@@ -206,7 +368,7 @@ const Dashboard = () => {
   };
 
   // Aplicar filtros
-  const filteredProjects = projects.filter(project => {
+  const filteredProjects = projects?.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(filters.search.toLowerCase()) ||
                          project.description.toLowerCase().includes(filters.search.toLowerCase());
     
@@ -246,6 +408,30 @@ const Dashboard = () => {
       default: return status;
     }
   };
+
+  // Filtrar projetos pela empresa atual
+  
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-slate-300">Carregando dados...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentCompany) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 dark:text-slate-300">Nenhuma empresa encontrada</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -328,7 +514,7 @@ const Dashboard = () => {
                   <FolderKanban className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-lg sm:text-2xl font-bold">{projects.length}</div>
+                  <div className="text-lg sm:text-2xl font-bold">{projects?.length}</div>
                   <p className="text-xs text-muted-foreground truncate">
                     em {currentCompany.name}
                   </p>
@@ -344,7 +530,7 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-lg sm:text-2xl font-bold">
-                    {projects.filter(p => p.status === 'active').length}
+                    {projects?.filter(p => p.status === 'active').length}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Em andamento
@@ -361,7 +547,7 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-lg sm:text-2xl font-bold">
-                    {projects.reduce((acc, p) => acc + p.completedTasks, 0)}
+                    {projects?.reduce((acc, p) => acc + p.completedTasks, 0)}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Tarefas
@@ -378,7 +564,7 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-lg sm:text-2xl font-bold">
-                    {projects.length > 0 ? Math.max(...projects.map(p => p.members)) : 0}
+                    {projects?.length > 0 ? Math.max(...projects.map(p => p.members)) : 0}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Ativos
@@ -392,12 +578,12 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <h2 className="text-lg sm:text-xl font-semibold">Seus Projetos</h2>
                 <span className="text-xs sm:text-sm text-muted-foreground">
-                  {filteredProjects.length} projeto(s)
+                  {filteredProjects?.length} projeto(s)
                 </span>
               </div>
               
               <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {filteredProjects.map((project) => (
+                {filteredProjects?.map((project) => (
                   <Card key={project.id} className="hover:shadow-md transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
@@ -498,7 +684,7 @@ const Dashboard = () => {
                 ))}
               </div>
               
-              {filteredProjects.length === 0 && (
+              {filteredProjects?.length === 0 && (
                 <div className="text-center py-8 sm:py-12">
                   <div className="mx-auto h-12 w-12 text-muted-foreground mb-4">
                     <Search className="h-full w-full" />

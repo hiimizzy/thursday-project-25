@@ -1,6 +1,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from '@/integrations/supabase/client';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface RealtimeHookOptions {
   entityType: 'project' | 'task' | 'company';
@@ -19,40 +21,61 @@ interface OptimisticUpdate<T> {
 export const useRealtimeSync = <T,>(options: RealtimeHookOptions) => {
   const [isConnected, setIsConnected] = useState(false);
   const [optimisticUpdates, setOptimisticUpdates] = useState<OptimisticUpdate<T>[]>([]);
+  const [channel, setChannel] = useState<RealtimeChannel | null>(null);
   const { toast } = useToast();
 
-  // Simular conexão WebSocket/Socket.io
+  // Configurar sincronização em tempo real com Supabase
   useEffect(() => {
-    console.log(`🔗 Conectando ao canal: ${options.entityType}-${options.entityId}`);
-    setIsConnected(true);
+    const channelName = `${options.entityType}-${options.entityId}`;
+    console.log(`🔗 Conectando ao canal: ${channelName}`);
 
-    // Simular recebimento de atualizações em tempo real
-    const interval = setInterval(() => {
-      if (Math.random() > 0.95) { // 5% chance de receber atualização
-        const mockUpdate = {
-          id: Date.now().toString(),
-          type: options.entityType,
-          data: { lastModified: new Date().toISOString() },
-          user: 'Outro usuário'
-        };
-        
-        options.onUpdate?.(mockUpdate);
-        
-        toast({
-          title: "Atualização recebida",
-          description: `${mockUpdate.user} fez alterações`,
-        });
-      }
-    }, 5000);
+    const realtimeChannel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: options.entityType === 'project' ? 'projects' : 
+                 options.entityType === 'task' ? 'tasks' : 'companies',
+          filter: `id=eq.${options.entityId}`
+        },
+        (payload) => {
+          console.log('📡 Atualização em tempo real recebida:', payload);
+          
+          const updateData = {
+            id: Date.now().toString(),
+            type: options.entityType,
+            data: payload.new || payload.old,
+            user: 'Outro usuário',
+            event: payload.eventType
+          };
+          
+          options.onUpdate?.(updateData);
+          
+          if (payload.eventType !== 'INSERT') {
+            toast({
+              title: "🔄 Atualização recebida",
+              description: `Dados foram atualizados por outro usuário`,
+            });
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log(`📡 Status da conexão: ${status}`);
+        setIsConnected(status === 'SUBSCRIBED');
+      });
+
+    setChannel(realtimeChannel);
 
     return () => {
-      clearInterval(interval);
+      console.log(`🔌 Desconectando do canal: ${channelName}`);
+      realtimeChannel.unsubscribe();
       setIsConnected(false);
-      console.log(`🔌 Desconectado do canal: ${options.entityType}-${options.entityId}`);
     };
   }, [options.entityType, options.entityId]);
 
-  // Atualização otimística
+  // Atualização otimística com Supabase
   const optimisticUpdate = useCallback(async (data: T, serverUpdate: () => Promise<T>) => {
     const updateId = Date.now().toString();
     
@@ -67,7 +90,7 @@ export const useRealtimeSync = <T,>(options: RealtimeHookOptions) => {
     setOptimisticUpdates(prev => [...prev, optimisticData]);
     
     try {
-      // 2. Enviar para o servidor
+      // 2. Enviar para o Supabase
       const serverResponse = await serverUpdate();
       
       // 3. Confirmar sucesso
@@ -79,12 +102,14 @@ export const useRealtimeSync = <T,>(options: RealtimeHookOptions) => {
         )
       );
       
-      // Limpar atualizações confirmadas após um tempo
+      // Limpar atualizações confirmadas
       setTimeout(() => {
         setOptimisticUpdates(prev => prev.filter(u => u.id !== updateId));
       }, 1000);
       
     } catch (error) {
+      console.error('❌ Erro na sincronização:', error);
+      
       // 4. Reverter em caso de erro
       setOptimisticUpdates(prev => 
         prev.map(update => 
@@ -95,7 +120,7 @@ export const useRealtimeSync = <T,>(options: RealtimeHookOptions) => {
       );
       
       toast({
-        title: "Erro ao sincronizar",
+        title: "❌ Erro ao sincronizar",
         description: "Suas alterações foram revertidas. Tente novamente.",
         variant: "destructive"
       });
@@ -117,43 +142,96 @@ export const useRealtimeSync = <T,>(options: RealtimeHookOptions) => {
   };
 };
 
-// Hook para verificação de permissões em tempo real
-export const usePermissions = (companyId: string, userId: string = 'current-user') => {
+// Hook para verificação de permissões em tempo real com Supabase
+export const usePermissions = (companyId: string, userId?: string) => {
   const [permissions, setPermissions] = useState({
-    canCreateProjects: true,
-    canEditProjects: true,
+    canCreateProjects: false,
+    canEditProjects: false,
     canDeleteProjects: false,
-    canInviteMembers: true,
-    canManageCompany: true,
-    role: 'admin' as 'admin' | 'member' | 'viewer'
+    canInviteMembers: false,
+    canManageCompany: false,
+    role: 'viewer' as 'admin' | 'member' | 'viewer'
   });
 
   const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    // Simular carregamento de permissões
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      return user;
+    };
+
     const loadPermissions = async () => {
       setIsLoading(true);
       
-      // Simular delay de rede
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Simular permissões baseadas no papel do usuário
-      const mockPermissions = {
-        canCreateProjects: true,
-        canEditProjects: true,
-        canDeleteProjects: true, // Admin pode deletar
-        canInviteMembers: true,
-        canManageCompany: true,
-        role: 'admin' as const
-      };
-      
-      setPermissions(mockPermissions);
-      setIsLoading(false);
+      try {
+        const currentUser = await getUser();
+        if (!currentUser) {
+          setIsLoading(false);
+          return;
+        }
+
+        // Buscar permissões do usuário na empresa
+        const { data: memberData, error } = await supabase
+          .from('company_members')
+          .select('role, permissions')
+          .eq('company_id', companyId)
+          .eq('user_id', currentUser.id)
+          .single();
+
+        if (error) {
+          console.error('❌ Erro ao carregar permissões:', error);
+          setIsLoading(false);
+          return;
+        }
+
+        // Definir permissões baseadas no papel
+        const userRole = memberData?.role || 'viewer';
+        const newPermissions = {
+          canCreateProjects: userRole === 'admin' || userRole === 'member',
+          canEditProjects: userRole === 'admin' || userRole === 'member',
+          canDeleteProjects: userRole === 'admin',
+          canInviteMembers: userRole === 'admin',
+          canManageCompany: userRole === 'admin',
+          role: userRole as 'admin' | 'member' | 'viewer'
+        };
+        
+        setPermissions(newPermissions);
+        console.log('🔐 Permissões carregadas:', newPermissions);
+        
+      } catch (error) {
+        console.error('❌ Erro ao carregar permissões:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadPermissions();
-  }, [companyId, userId]);
+
+    // Escutar mudanças nas permissões em tempo real
+    const channel = supabase
+      .channel(`company-permissions-${companyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'company_members',
+          filter: `company_id=eq.${companyId}`
+        },
+        () => {
+          console.log('🔄 Permissões atualizadas, recarregando...');
+          loadPermissions();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [companyId]);
 
   const hasPermission = useCallback((action: keyof typeof permissions) => {
     return permissions[action] === true;
@@ -163,6 +241,7 @@ export const usePermissions = (companyId: string, userId: string = 'current-user
     permissions,
     isLoading,
     hasPermission,
-    role: permissions.role
+    role: permissions.role,
+    user
   };
 };
