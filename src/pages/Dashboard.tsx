@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from '@/components/AppSidebar';
@@ -305,12 +304,9 @@ const Dashboard = () => {
                 <Button onClick={() => setIsInviteOpen(true)} variant="outline" className="lg:hidden">
                   <Users className="h-4 w-4" />
                 </Button>
-                <Button onClick={() => setIsCreateProjectOpen(true)} className="hidden lg:flex">
+                <Button onClick={() => setIsCreateProjectOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Novo Projeto
-                </Button>
-                <Button onClick={() => setIsCreateProjectOpen(true)} className="lg:hidden">
-                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -511,10 +507,6 @@ const Dashboard = () => {
                   <p className="text-muted-foreground mb-4 text-sm px-4">
                     Tente ajustar os filtros ou criar um novo projeto.
                   </p>
-                  <Button onClick={() => setIsCreateProjectOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Novo Projeto
-                  </Button>
                 </div>
               )}
             </div>
