@@ -119,6 +119,7 @@ const Dashboard = () => {
           .from('company_members')
           .select(`
             role,
+            company_id,
             companies!inner(id, name, created_at)
           `)
           .eq('user_id', user.id);
@@ -127,8 +128,8 @@ const Dashboard = () => {
           console.error('❌ Erro ao carregar empresas:', companiesError);
         } else {
           const userCompanies = companiesData?.map(item => ({
-            id: item.companies.id,
-            name: item.companies.name,
+            id: item.company_id,
+            name: (item.companies as any).name,
             role: item.role as 'admin' | 'member' | 'viewer'
           })) || [];
           
