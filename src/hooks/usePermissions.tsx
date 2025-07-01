@@ -1,6 +1,5 @@
-
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 export type UserRole = 'admin' | 'member' | 'viewer';
 

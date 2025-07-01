@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from '@/components/AppSidebar';
@@ -27,8 +28,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import CreateProjectDialog from '@/components/CreateProjectDialog';
 import InviteMembersDialog from '@/components/InviteMembersDialog';
 import ProjectSearch from '@/components/ProjectSearch';
-import { useRealtimeSync, usePermissions } from '@/hooks/useRealtimeSync';
-import { supabase } from '@/integrations/supabase/client';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
+import { usePermissions } from '@/hooks/usePermissions';
+import { supabase } from '@/lib/supabase';
 import ThemeToggle from '@/components/ThemeToggle';
 import HelpDialog from '@/components/HelpDialog';
 

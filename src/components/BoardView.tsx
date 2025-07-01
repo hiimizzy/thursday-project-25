@@ -15,7 +15,7 @@ import { useOptimisticUpdates } from '@/hooks/useOptimisticUpdates';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { usePermissions, UserRole } from '@/hooks/usePermissions';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 interface Column {
   id: string;
