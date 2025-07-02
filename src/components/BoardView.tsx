@@ -451,7 +451,7 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
         <div className="min-w-[800px]">
           <Table>
             <TableHeader>
-              <TableRow className="bg-gray-50">
+              <TableRow className="bg-gray-70">
                 <TableHead className="w-8 sm:w-12"></TableHead>
                 {columns.map((column) => (
                   <TableHead key={column.id} style={{ minWidth: column.width, width: column.width }}>
@@ -478,7 +478,7 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
             </TableHeader>
             <TableBody>
               {items.map((item, index) => (
-                <TableRow key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                <TableRow key={item.id} className={index % 2 === 0 ? 'bg-gray-50/50' : 'bg-white-50/50'}>
                   <TableCell className="p-2">
                     <GripVertical className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 cursor-move" />
                   </TableCell>
