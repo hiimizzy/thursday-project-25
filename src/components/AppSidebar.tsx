@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -29,6 +28,7 @@ import { Separator } from "@/components/ui/separator";
 import CreateProjectDialog from './CreateProjectDialog';
 import InviteMembersDialog from './InviteMembersDialog';
 import CompanySelector from './CompanySelector';
+import { useIsTablet } from '@/hooks/use-mobile';
 
 interface Project {
   id: string;
@@ -75,35 +75,39 @@ export function AppSidebar({
   onCreateCompany
 }: AppSidebarProps) {
   const { state, isMobile } = useSidebar();
+  const isTablet = useIsTablet();
   const location = useLocation();
   const navigate = useNavigate();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   
-  const isCollapsed = state === 'collapsed' && !isMobile;
+  // Para tablets, não colapsar automaticamente como no mobile
+  const isCollapsed = state === 'collapsed' && !isMobile && !isTablet;
   const currentPath = location.pathname;
 
   const isActive = (path: string) => currentPath === path;
 
   return (
     <Sidebar 
-      className={isCollapsed ? "w-14" : "w-64"} 
-      collapsible={isMobile ? "offcanvas" : "icon"}
+      className={isCollapsed ? "w-14" : (isTablet ? "w-56" : "w-64")} 
+      collapsible={isMobile ? "offcanvas" : (isTablet ? "icon" : "icon")}
     >
       <SidebarHeader className="p-4">
-        {!isCollapsed && (
+        {(!isCollapsed || isTablet) && (
           <div className="space-y-3">
             <div className="flex items-center space-x-2">
               <div className="text-xl font-bold text-blue-600">Thursday</div>
             </div>
             
-            {/* Company Selector */}
-            <CompanySelector
-              companies={companies}
-              currentCompany={currentCompany}
-              onCompanyChange={onCompanyChange}
-              onCreateCompany={onCreateCompany}
-            />
+            {/* Company Selector - ocultar apenas quando totalmente colapsado */}
+            {!isCollapsed && (
+              <CompanySelector
+                companies={companies}
+                currentCompany={currentCompany}
+                onCompanyChange={onCompanyChange}
+                onCreateCompany={onCreateCompany}
+              />
+            )}
           </div>
         )}
       </SidebarHeader>
@@ -119,11 +123,11 @@ export function AppSidebar({
                   <SidebarMenuButton 
                     asChild 
                     isActive={isActive(item.url)}
-                    tooltip={isCollapsed ? item.title : undefined}
+                    tooltip={isCollapsed && !isTablet ? item.title : undefined}
                   >
                     <NavLink to={item.url} className="flex items-center">
                       <item.icon className="h-4 w-4" />
-                      {!isCollapsed && <span className="ml-2">{item.title}</span>}
+                      {(!isCollapsed || isTablet) && <span className="ml-2">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -142,19 +146,19 @@ export function AppSidebar({
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   onClick={() => setIsCreateProjectOpen(true)}
-                  tooltip={isCollapsed ? "Novo Projeto" : undefined}
+                  tooltip={isCollapsed && !isTablet ? "Novo Projeto" : undefined}
                 >
                   <Plus className="h-4 w-4" />
-                  {!isCollapsed && <span className="ml-2">Novo Projeto</span>}
+                  {(!isCollapsed || isTablet) && <span className="ml-2">Novo Projeto</span>}
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   onClick={() => setIsInviteOpen(true)}
-                  tooltip={isCollapsed ? "Convidar Membros" : undefined}
+                  tooltip={isCollapsed && !isTablet ? "Convidar Membros" : undefined}
                 >
                   <Users className="h-4 w-4" />
-                  {!isCollapsed && <span className="ml-2">Convidar Membros</span>}
+                  {(!isCollapsed || isTablet) && <span className="ml-2">Convidar Membros</span>}
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -172,14 +176,14 @@ export function AppSidebar({
                 <SidebarMenuItem key={project.id}>
                   <SidebarMenuButton 
                     asChild
-                    tooltip={isCollapsed ? project.name : undefined}
+                    tooltip={isCollapsed && !isTablet ? project.name : undefined}
                   >
                     <NavLink 
                       to={`/project/${project.id}`}
                       className="flex items-center"
                     >
                       <FolderKanban className="h-4 w-4" />
-                      {!isCollapsed && (
+                      {(!isCollapsed || isTablet) && (
                         <span className="ml-2 truncate">{project.name}</span>
                       )}
                     </NavLink>
@@ -194,8 +198,8 @@ export function AppSidebar({
       <SidebarFooter className="p-4">
         <div className="space-y-2">
           {/* Perfil do Usuário */}
-          {!isCollapsed && (
-            <div className="flex items-center space-x-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800">
+          {(!isCollapsed || isTablet) && (
+            <div className="flex items-center space-x-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={profileImage} />
                 <AvatarFallback>
@@ -214,15 +218,15 @@ export function AppSidebar({
           {/* Botão Sair - Sempre Visível */}
           <Button
             variant="ghost"
-            size={isCollapsed ? "icon" : "sm"}
+            size={isCollapsed && !isTablet ? "icon" : "sm"}
             onClick={() => navigate('/')}
-            className={`w-full text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 ${
-              isCollapsed ? 'justify-center p-2' : ''
+            className={`w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 transition-colors ${
+              isCollapsed && !isTablet ? 'justify-center p-2' : ''
             }`}
-            title={isCollapsed ? "Sair" : undefined}
+            title={isCollapsed && !isTablet ? "Sair" : undefined}
           >
-            <LogOut className={`h-4 w-4 ${isCollapsed ? '' : 'mr-2'}`} />
-            {!isCollapsed && 'Sair'}
+            <LogOut className={`h-4 w-4 ${isCollapsed && !isTablet ? '' : 'mr-2'}`} />
+            {(!isCollapsed || isTablet) && 'Sair'}
           </Button>
         </div>
       </SidebarFooter>
