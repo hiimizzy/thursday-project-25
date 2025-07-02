@@ -29,7 +29,7 @@ import InviteMembersDialog from '@/components/InviteMembersDialog';
 import ProjectSearch from '@/components/ProjectSearch';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { usePermissions } from '@/hooks/usePermissions';
-import { supabase } from '@/lib/supabase';
+import { getSocket, mockAPI } from '@/lib/socket';
 import ThemeToggle from '@/components/ThemeToggle';
 import HelpDialog from '@/components/HelpDialog';
 
@@ -80,16 +80,16 @@ const Dashboard = () => {
   
   const { toast } = useToast();
   
-  // Usar permissões do Supabase
-  const { permissions, user } = usePermissions(currentCompany?.id || '');
+  // Usar dados mock em vez do Supabase
+  const permissions = { canEdit: true, canDelete: true };
+  const user = mockAPI.user;
   
-  // Sincronização em tempo real
+  // Configurar Socket.io
   useRealtimeSync({
     entityType: 'company',
     entityId: currentCompany?.id || '',
     onUpdate: (data) => {
       console.log('📡 Empresa atualizada em tempo real:', data);
-      // Recarregar projetos quando houver atualizações
       if (data.event === 'UPDATE' || data.event === 'INSERT') {
         loadProjects();
       }
@@ -99,49 +99,26 @@ const Dashboard = () => {
     }
   });
 
-  // Carregar dados do Supabase
+  // Carregar dados mock
   useEffect(() => {
     const loadUserData = async () => {
       setIsLoading(true);
       
       try {
-        // Verificar usuário autenticado
-        const { data: { user } } = await supabase.auth.getUser();
+        // Usar dados mock
+        const userCompanies = mockAPI.companies;
+        setCompanies(userCompanies);
         
-        if (!user) {
-          console.log('❌ Usuário não autenticado');
-          setIsLoading(false);
-          return;
+        if (userCompanies.length > 0) {
+          setCurrentCompany(userCompanies[0]);
         }
 
-        // Carregar empresas do usuário
-        const { data: companiesData, error: companiesError } = await supabase
-          .from('company_members')
-          .select(`
-            role,
-            company_id,
-            companies!inner(id, name, created_at)
-          `)
-          .eq('user_id', user.id);
-
-        if (companiesError) {
-          console.error('❌ Erro ao carregar empresas:', companiesError);
-        } else {
-          const userCompanies = companiesData?.map(item => ({
-            id: item.company_id,
-            name: (item.companies as any).name,
-            role: item.role as 'admin' | 'member' | 'viewer'
-          })) || [];
-          
-          setCompanies(userCompanies);
-          
-          if (userCompanies.length > 0) {
-            setCurrentCompany(userCompanies[0]);
-          }
-        }
+        // Carregar projetos mock
+        const mockProjects = mockAPI.projects;
+        setAllProjects(mockProjects);
 
       } catch (error) {
-        console.error('❌ Erro ao carregar dados do usuário:', error);
+        console.error('❌ Erro ao carregar dados:', error);
         toast({
           title: "❌ Erro ao carregar dados",
           description: "Tente recarregar a página",
@@ -160,30 +137,9 @@ const Dashboard = () => {
     if (!currentCompany || !user) return;
 
     try {
-      const { data: projectsData, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('company_id', currentCompany.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('❌ Erro ao carregar projetos:', error);
-      } else {
-        const mappedProjects = projectsData.map(project => ({
-          id: project.id,
-          name: project.name,
-          description: project.description || '',
-          status: project.status,
-          members: project.members || 1,
-          tasks: project.tasks || 0,
-          completedTasks: project.completed_tasks || 0,
-          dueDate: project.due_date || new Date().toISOString(),
-          favorite: project.favorite || false,
-          companyId: project.company_id
-        }));
-        
-        setAllProjects(mappedProjects);
-      }
+      // Usar dados mock
+      const mockProjects = mockAPI.projects.filter(p => p.companyId === currentCompany.id);
+      setAllProjects(mockProjects);
     } catch (error) {
       console.error('❌ Erro ao carregar projetos:', error);
     }
@@ -213,40 +169,18 @@ const Dashboard = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .insert({
-          name: newProject.name,
-          description: newProject.description,
-          company_id: currentCompany.id,
-          status: 'active',
-          created_by: user.id,
-          members: 1,
-          tasks: 0,
-          completed_tasks: 0,
-          due_date: newProject.dueDate,
-          favorite: false
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('❌ Erro ao criar projeto:', error);
-        throw error;
-      }
+      // Usar Socket.io para criar projeto
+      const socket = getSocket();
+      socket.emit('create_project', {
+        ...newProject,
+        company_id: currentCompany.id,
+        created_by: user.id
+      });
 
       // Atualizar lista local
       const projectWithCompany = {
-        id: data.id,
-        name: data.name,
-        description: data.description || '',
-        status: data.status,
-        members: data.members || 1,
-        tasks: data.tasks || 0,
-        completedTasks: data.completed_tasks || 0,
-        dueDate: data.due_date || new Date().toISOString(),
-        favorite: data.favorite || false,
-        companyId: data.company_id
+        ...newProject,
+        companyId: currentCompany.id
       };
 
       setAllProjects(prev => [projectWithCompany, ...prev]);
@@ -279,20 +213,11 @@ const Dashboard = () => {
     ));
 
     try {
-      const { error } = await supabase
-        .from('projects')
-        .update({ favorite: !project.favorite })
-        .eq('id', projectId);
-
-      if (error) {
-        console.error('❌ Erro ao atualizar favorito:', error);
-        // Reverter mudança em caso de erro
-        setAllProjects(allProjects.map(project => 
-          project.id === projectId 
-            ? { ...project, favorite: project.favorite }
-            : project
-        ));
-      }
+      const socket = getSocket();
+      socket.emit('update_project', {
+        id: projectId,
+        favorite: !project.favorite
+      });
     } catch (error) {
       console.error('❌ Erro ao atualizar favorito:', error);
     }
@@ -309,15 +234,8 @@ const Dashboard = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', projectId);
-
-      if (error) {
-        console.error('❌ Erro ao deletar projeto:', error);
-        throw error;
-      }
+      const socket = getSocket();
+      socket.emit('delete_project', { id: projectId });
 
       setAllProjects(allProjects.filter(project => project.id !== projectId));
       
@@ -410,9 +328,6 @@ const Dashboard = () => {
       default: return status;
     }
   };
-
-  // Filtrar projetos pela empresa atual
-  
 
   if (isLoading) {
     return (
@@ -704,6 +619,8 @@ const Dashboard = () => {
 
       {/* Diálogos */}
       <CreateProjectDialog 
+        open={isCreateProjectOpen}
+        onOpenChange={setIsCreateProjectOpen}
         onCreateProject={handleCreateProject}
       />
       
