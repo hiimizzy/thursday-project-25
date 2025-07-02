@@ -12,10 +12,7 @@ import { Plus, Settings2, Trash2, GripVertical, CalendarIcon, Save, Wifi, WifiOf
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useOptimisticUpdates } from '@/hooks/useOptimisticUpdates';
-import { useAutoSave } from '@/hooks/useAutoSave';
-import { usePermissions, UserRole } from '@/hooks/usePermissions';
-import { useRealtimeSync } from '@/hooks/useRealtimeSync';
-import { supabase } from '@/lib/supabase';
+import { getSocket, mockAPI } from '@/lib/socket';
 
 interface Column {
   id: string;
@@ -42,68 +39,82 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
   const [newColumnName, setNewColumnName] = useState('');
   const [newColumnType, setNewColumnType] = useState<Column['type']>('text');
   const [newColumnOptions, setNewColumnOptions] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
 
-  // Usar permissões do Supabase
-  const { permissions, isLoading: permissionsLoading, user } = usePermissions(project.companyId);
   const { addOptimisticAction, hasPendingActions } = useOptimisticUpdates();
 
-  // Sincronização em tempo real
-  const { isConnected } = useRealtimeSync({
-    entityType: 'project',
-    entityId: project.id,
-    onUpdate: (data) => {
-      console.log('📡 Projeto atualizado em tempo real:', data);
-      // Recarregar dados do projeto quando houver atualizações
-      if (data.event === 'UPDATE') {
-        // Atualizar estado local com dados do servidor
-        if (data.data.columns) setColumns(data.data.columns);
-        if (data.data.items) setItems(data.data.items);
-      }
-    },
-    onError: (error) => {
-      console.error('❌ Erro na sincronização:', error);
-    }
-  });
-
-  // Auto-save para Supabase
-  const saveProjectData = useCallback(async (data: any) => {
-    if (!user) return;
+  // Configurar Socket.io
+  useEffect(() => {
+    const socket = getSocket();
     
-    try {
-      console.log('💾 Salvando projeto no Supabase...', data);
-      
-      const { error } = await supabase
-        .from('projects')
-        .update({
-          columns: data.columns,
-          items: data.items,
-          tasks: data.items?.length || 0,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', project.id);
+    socket.on('connect', () => {
+      console.log('🔌 Conectado ao Socket.io');
+      setIsConnected(true);
+    });
 
-      if (error) {
-        console.error('❌ Erro ao salvar projeto:', error);
-        throw error;
+    socket.on('disconnect', () => {
+      console.log('🔌 Desconectado do Socket.io');
+      setIsConnected(false);
+    });
+
+    socket.on('project_updated', (data) => {
+      console.log('📡 Projeto atualizado via Socket.io:', data);
+      if (data.projectId === project.id) {
+        if (data.columns) setColumns(data.columns);
+        if (data.items) setItems(data.items);
       }
+    });
 
-      console.log('✅ Projeto salvo com sucesso');
+    return () => {
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('project_updated');
+    };
+  }, [project.id]);
+
+  // Simular permissões (já que removemos o Supabase)
+  const permissions = {
+    canEdit: true,
+    canDelete: true,
+    canCreateColumns: true,
+    canDeleteColumns: true,
+    canView: true
+  };
+
+  const user = mockAPI.user;
+
+  // Auto-save usando Socket.io
+  const saveProjectData = useCallback(async (data: any) => {
+    try {
+      console.log('💾 Salvando projeto via Socket.io...', data);
+      
+      const socket = getSocket();
+      socket.emit('update_project', {
+        projectId: project.id,
+        ...data,
+        updated_at: new Date().toISOString()
+      });
+
+      console.log('✅ Projeto enviado para salvar');
       onUpdateProject({ ...project, ...data });
       
     } catch (error) {
-      console.error('❌ Erro ao salvar no Supabase:', error);
+      console.error('❌ Erro ao salvar via Socket.io:', error);
     }
-  }, [project, onUpdateProject, user]);
+  }, [project, onUpdateProject]);
 
-  useAutoSave({ columns, items }, saveProjectData, 1500);
+  // Auto-save com debounce simples
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (columns.length > 0 || items.length > 0) {
+        saveProjectData({ columns, items });
+      }
+    }, 1500);
 
-  // Verificar permissões antes de executar ações
+    return () => clearTimeout(timeoutId);
+  }, [columns, items, saveProjectData]);
+
   const addColumn = async () => {
-    if (!permissions.canCreateColumns || permissionsLoading) {
-      alert('Você não tem permissão para criar colunas');
-      return;
-    }
-
     if (newColumnName.trim()) {
       const newColumn: Column = {
         id: Date.now().toString(),
@@ -118,7 +129,6 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
       const previousColumns = [...columns];
       const updatedColumns = [...columns, newColumn];
       
-      // Atualização otimista
       setColumns(updatedColumns);
       
       addOptimisticAction({
@@ -128,7 +138,6 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
         rollback: () => setColumns(previousColumns)
       });
 
-      await saveProjectData({ columns: updatedColumns, items });
       setNewColumnName('');
       setNewColumnType('text');
       setNewColumnOptions('');
@@ -137,11 +146,6 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
   };
 
   const deleteColumn = async (columnId: string) => {
-    if (!permissions.canDeleteColumns || permissionsLoading) {
-      alert('Você não tem permissão para deletar colunas');
-      return;
-    }
-
     const previousColumns = [...columns];
     const previousItems = [...items];
     const updatedColumns = columns.filter(col => col.id !== columnId);
@@ -150,7 +154,6 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
       return rest as Item;
     });
 
-    // Atualização otimista
     setColumns(updatedColumns);
     setItems(updatedItems);
 
@@ -163,16 +166,9 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
         setItems(previousItems);
       }
     });
-
-    await saveProjectData({ columns: updatedColumns, items: updatedItems });
   };
 
   const addItem = async () => {
-    if (!permissions.canEdit || permissionsLoading) {
-      alert('Você não tem permissão para adicionar itens');
-      return;
-    }
-
     const newItem: Item = {
       id: Date.now().toString(),
       [columns[0]?.id || '1']: `Item ${items.length + 1}`,
@@ -183,7 +179,6 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
     const previousItems = [...items];
     const updatedItems = [...items, newItem];
     
-    // Atualização otimista
     setItems(updatedItems);
     
     addOptimisticAction({
@@ -192,15 +187,9 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
       data: newItem,
       rollback: () => setItems(previousItems)
     });
-
-    await saveProjectData({ columns, items: updatedItems });
   };
 
   const updateItem = async (itemId: string, columnId: string, value: any) => {
-    if (!permissions.canEdit || permissionsLoading) {
-      return;
-    }
-
     const previousItems = [...items];
     const updatedItems = items.map(item => 
       item.id === itemId ? { 
@@ -211,7 +200,6 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
       } : item
     );
     
-    // Atualização otimista
     setItems(updatedItems);
     
     addOptimisticAction({
@@ -220,20 +208,12 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
       data: { itemId, columnId, value },
       rollback: () => setItems(previousItems)
     });
-
-    // Salvar com debounce através do useAutoSave
   };
 
   const deleteItem = async (itemId: string) => {
-    if (!permissions.canDelete || permissionsLoading) {
-      alert('Você não tem permissão para deletar itens');
-      return;
-    }
-
     const previousItems = [...items];
     const updatedItems = items.filter(item => item.id !== itemId);
     
-    // Atualização otimista
     setItems(updatedItems);
     
     addOptimisticAction({
@@ -242,20 +222,12 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
       data: { itemId },
       rollback: () => setItems(previousItems)
     });
-
-    await saveProjectData({ columns, items: updatedItems });
-  };
-
-  const updateProject = (updates: any) => {
-    const updatedProject = { ...project, ...updates };
-    onUpdateProject(updatedProject);
   };
 
   const renderCellContent = (item: Item, column: Column) => {
     const value = item[column.id];
 
     if (!permissions.canEdit) {
-      // Modo somente leitura
       switch (column.type) {
         case 'date':
           return <span className="text-sm">{value ? format(new Date(value), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span>;
@@ -269,7 +241,6 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
       }
     }
 
-    // Modo editável
     switch (column.type) {
       case 'text':
         return (
@@ -369,15 +340,6 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
     }
   };
 
-  if (permissionsLoading) {
-    return (
-      <div className="p-6 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2">Carregando permissões...</span>
-      </div>
-    );
-  }
-
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header com status de sync */}
@@ -393,7 +355,7 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
             ) : isConnected ? (
               <div className="flex items-center gap-1 text-xs text-green-600">
                 <Wifi className="h-3 w-3" />
-                Sincronizado
+                Conectado
               </div>
             ) : (
               <div className="flex items-center gap-1 text-xs text-red-600">
@@ -404,9 +366,7 @@ const BoardView = ({ project, onUpdateProject }: BoardViewProps) => {
           </div>
           <p className="text-sm sm:text-base text-gray-600">{project.description}</p>
           <p className="text-xs text-gray-500">
-            Permissões: {permissions.canEdit ? 'Editor' : 'Visualizador'} • 
-            {permissions.canDelete ? ' Pode deletar' : ' Somente leitura'} •
-            Usuário: {user?.email}
+            Socket.io conectado • Usuário: {user?.email || 'Desconhecido'}
           </p>
         </div>
         

@@ -134,6 +134,35 @@ export function AppSidebar({
 
         <Separator className="my-2" />
 
+        {/* Ações - Novo Projeto */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Ações</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={() => setIsCreateProjectOpen(true)}
+                  tooltip={isCollapsed ? "Novo Projeto" : undefined}
+                >
+                  <Plus className="h-4 w-4" />
+                  {!isCollapsed && <span className="ml-2">Novo Projeto</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={() => setIsInviteOpen(true)}
+                  tooltip={isCollapsed ? "Convidar Membros" : undefined}
+                >
+                  <Users className="h-4 w-4" />
+                  {!isCollapsed && <span className="ml-2">Convidar Membros</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <Separator className="my-2" />
+
         {/* Projetos Recentes */}
         <SidebarGroup>
           <SidebarGroupLabel>Projetos Recentes</SidebarGroupLabel>
@@ -160,26 +189,6 @@ export function AppSidebar({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* Ações Rápidas - Apenas Mobile - Somente Convidar Membros */}
-        {isMobile && (
-          <>
-            <Separator className="my-2" />
-            <SidebarGroup>
-              <SidebarGroupLabel>Ações</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => setIsInviteOpen(true)}>
-                      <Users className="h-4 w-4" />
-                      <span className="ml-2">Convidar Membros</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </>
-        )}
       </SidebarContent>
 
       <SidebarFooter className="p-4">
@@ -202,28 +211,33 @@ export function AppSidebar({
             </div>
           )}
 
-          {/* Botão Sair - Apenas Mobile */}
-          {isMobile && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/')}
-              className="w-full text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
-            </Button>
-          )}
+          {/* Botão Sair - Sempre Visível */}
+          <Button
+            variant="ghost"
+            size={isCollapsed ? "icon" : "sm"}
+            onClick={() => navigate('/')}
+            className={`w-full text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 ${
+              isCollapsed ? 'justify-center p-2' : ''
+            }`}
+            title={isCollapsed ? "Sair" : undefined}
+          >
+            <LogOut className={`h-4 w-4 ${isCollapsed ? '' : 'mr-2'}`} />
+            {!isCollapsed && 'Sair'}
+          </Button>
         </div>
       </SidebarFooter>
 
-      {/* Diálogos - Apenas Mobile - Sem CreateProjectDialog */}
-      {isMobile && (
-        <InviteMembersDialog 
-          open={isInviteOpen}
-          onOpenChange={setIsInviteOpen}
-        />
-      )}
+      {/* Diálogos */}
+      <CreateProjectDialog 
+        open={isCreateProjectOpen}
+        onOpenChange={setIsCreateProjectOpen}
+        onCreateProject={onCreateProject}
+      />
+      
+      <InviteMembersDialog 
+        open={isInviteOpen}
+        onOpenChange={setIsInviteOpen}
+      />
     </Sidebar>
   );
 }

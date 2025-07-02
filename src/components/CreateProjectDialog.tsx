@@ -1,11 +1,10 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from 'lucide-react';
 
 interface Project {
   id: string;
@@ -21,11 +20,12 @@ interface Project {
 }
 
 interface CreateProjectDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onCreateProject: (project: Project) => void;
 }
 
-const CreateProjectDialog = ({ onCreateProject }: CreateProjectDialogProps) => {
-  const [open, setOpen] = useState(false);
+const CreateProjectDialog = ({ open, onOpenChange, onCreateProject }: CreateProjectDialogProps) => {
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [projectView, setProjectView] = useState('kanban');
@@ -40,27 +40,21 @@ const CreateProjectDialog = ({ onCreateProject }: CreateProjectDialogProps) => {
         members: 1,
         tasks: 0,
         completedTasks: 0,
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         favorite: false,
-        companyId: '' // Will be set by parent component
+        companyId: '1' // Mock company ID
       };
       
       onCreateProject(newProject);
       setProjectName('');
       setProjectDescription('');
       setProjectView('kanban');
-      setOpen(false);
+      onOpenChange(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Projeto
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Criar Novo Projeto</DialogTitle>
