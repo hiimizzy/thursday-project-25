@@ -150,15 +150,24 @@
     }
   }
 
-  /* Tablet optimizations */
+  /* Tablet optimizations - Enhanced */
   @media (min-width: 768px) and (max-width: 1024px) {
     .sidebar-tablet {
       width: 14rem !important;
     }
     
+    .sidebar-tablet-collapsed {
+      width: 4rem !important;
+    }
+    
     .sidebar-tablet-content {
       padding-left: 0.75rem;
       padding-right: 0.75rem;
+    }
+
+    /* Tablet hover improvements */
+    .tablet-hover-enhanced:hover {
+      @apply bg-gray-100/70 dark:bg-gray-700/60;
     }
   }
 }
