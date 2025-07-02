@@ -114,7 +114,7 @@ export function AppSidebar({
             </div>
             
             {/* Company Selector - mostrar mesmo em tablet colapsado */}
-            {(showContent && state !== 'collapsed') || (isTablet && state === 'expanded') ? (
+            {(showContent && state !== 'collapsed') || (isTablet && !isCollapsed) ? (
               <CompanySelector
                 companies={companies}
                 currentCompany={currentCompany}
@@ -246,7 +246,7 @@ export function AppSidebar({
                   <User className="h-4 w-4" />
                 </AvatarFallback>
               </Avatar>
-              {(state !== 'collapsed' || (isTablet && state === 'expanded')) && (
+              {(state !== 'collapsed' || (isTablet && !isCollapsed)) && (
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">Usuário</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
@@ -268,7 +268,7 @@ export function AppSidebar({
             title={(isCollapsed && !isTablet) || (isTablet && state === 'collapsed') ? "Sair" : undefined}
           >
             <LogOut className={`h-4 w-4 ${(isCollapsed && !isTablet) || (isTablet && state === 'collapsed') ? '' : 'mr-2'}`} />
-            {((showContent && state !== 'collapsed') || (isTablet && state === 'expanded')) && 'Sair'}
+            {((showContent && state !== 'collapsed') || (isTablet && !isCollapsed)) && 'Sair'}
           </Button>
         </div>
       </SidebarFooter>
